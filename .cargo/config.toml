@@ -1,0 +1,4 @@
+[alias]
+build_all = "run --release --package build_tools -- build"
+run_java = "run --release  --package build_tools -- run"
+clean_all = "run --release  --package build_tools -- clean"

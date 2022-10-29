@@ -1,0 +1,9 @@
+[workspace]
+members = [
+	"rust_rt/rlib",
+	"rust_rt/main",
+	"rust_rt/macros",
+	"build_tools"
+]
+
+resolver = "2"

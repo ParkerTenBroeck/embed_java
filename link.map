@@ -1,0 +1,105 @@
+ENTRY(_start)
+
+/*
+PHDRS
+{
+  headers PT_PHDR PHDRS ;
+  interp PT_INTERP ;
+  text PT_LOAD FILEHDR PHDRS ;
+  data PT_LOAD ;
+  dynamic PT_DYNAMIC ;
+}
+*/
+
+SECTIONS
+{
+
+    . = 0x0;
+    .text :
+    {
+        . = ALIGN(0x8);
+        _stext = .;
+        *(.text.start)
+        . = ALIGN(0x8);
+        *(.text*)
+    }
+
+/*
+    . += SIZEOF_HEADERS;
+    .interp : { *(.interp) } :interp
+*/
+
+    
+    /* . = SIZEOF_HEADERS; */
+
+     _gp = ALIGN(8);
+    .got : 
+    {
+        . = ALIGN(0x8);
+        *(.got)
+        . = ALIGN(0x8);
+        *(.got*)   
+    }
+
+        .rodata : 
+    {
+        . = ALIGN(0x8);
+        *(.rodata)
+        . = ALIGN(0x8);
+        *(.rodata*)   
+    }
+
+    .data : 
+    {
+        . = ALIGN(0x8);
+        *(.data)
+        . = ALIGN(0x8);
+        *(.data*)   
+    }
+
+    .bss : 
+    {
+        . = ALIGN(0x8);
+        *(.bss)
+        . = ALIGN(0x8);
+        *(.bss*)   
+    }
+    
+
+
+    .rodata : 
+    {
+        . = ALIGN(0x8);
+        *(.rodata)
+        . = ALIGN(0x8);
+        *(.rodata*)   
+    }
+    . = ALIGN(0x8);
+    _stack_start = . + 0x10000;
+    _sp = _stack_start;
+    . = ALIGN(0x1000);
+    _heap = .;
+
+    
+
+
+    .pload : 
+    {
+        . = 0x0;
+        . = ALIGN(0x8);
+        *(.text)
+        . = ALIGN(0x8);
+        *(.got)
+        . = ALIGN(0x8);
+        *(.data)
+        . = ALIGN(0x8);
+        *(.rodata)
+        . = ALIGN(0x8);
+        *(.bss)
+
+        *(.headers)
+        *(.code)
+    }
+
+    
+}
