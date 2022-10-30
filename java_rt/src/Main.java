@@ -60,9 +60,6 @@ public class Main {
 
         Graphics g = image.getGraphics();
 
-
-        basicForm.setTitle("My Window now :)");
-
         JRootPane root_pane = (JRootPane) frame.getComponent(0);
 
         KeyRememberer test = new KeyRememberer();
@@ -117,20 +114,12 @@ public class Main {
         vm.memory = new int[2 << 25]; //allocate memory (256 MiB)
         vm.v_interface = new VirtualInterface(image, rootFrame, keys); //construct interface (syscalls)
 
-        //this program executes 6,442,254,338 instructions and can be used to bench the VM
-        //00: lui $2, 0x7FFF
-        //04: add $1, $0, $0
-        //08: addi $1, $1, 1
-        //0C: beq $2, $1, 0x14
-        //10: j 0x8
-        //14: syscall 0
-        //byte[] bytes = new byte[] {0x3c,0x02,0x7F, (byte)0xFF, 0x00, 0x00, 0x08, 0x20, 0x20, 0x21, 0x00, 0x01, 0x10, 0x22, 0x00, 0x01, 0x08, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x0C};
-
         //load binary into memory
         byte[] bytes = read_bin();
         for(int i = 0; i < bytes.length; i ++){
             vm.setByte(i, bytes[i]);
         }
+        
         while (true){
             long startTime = System.nanoTime();
             vm.run();
@@ -149,6 +138,7 @@ public class Main {
                     break;
                 }else if (keys.isKeyCharPressed('e')){
                     System.out.println("Exiting");
+                    System.exit(0);
                     return;
                 }
                 crankySleep(1);

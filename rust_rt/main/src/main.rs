@@ -23,10 +23,6 @@ pub fn main() {
     vec.push(JBooleanRef::new(false).to_obj_ref());
     vec.push(JDoubleRef::new(-54.2478378).to_obj_ref());
     vec.push(JLongRef::new(-54).to_obj_ref());
-    // println!("{:#?}", vec);
-    // let arr = ObjectArrayRef::from_vec(vec);
-    // println!("{}", arr);
-    let start = rlib::sys::current_time_nanos();
 
     let class = ClassRef::for_name("java.lang.Math").unwrap();
     let method = class
@@ -45,6 +41,11 @@ pub fn main() {
         JDoubleRef::new(4.0).to_obj_ref(),
         JDoubleRef::new(6.0).to_obj_ref()
     ]);
+
+
+    let ret = method.invoke_static(&mut args).unwrap();
+
+    let start = rlib::sys::current_time_nanos();
 
     for _ in 0..50000 {
         let ret = method.invoke_static(&mut args);
