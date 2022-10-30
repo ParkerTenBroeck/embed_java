@@ -115,7 +115,7 @@ public class Main {
     public static void runVm(BufferedImage image, JFrame rootFrame, KeyRememberer keys) throws Exception{
         VirtualMachine vm = new VirtualMachine(); //create vm
         vm.memory = new int[2 << 25]; //allocate memory (256 MiB)
-        vm.v_interface = new BrockVirtualInterface(image, rootFrame, keys); //construct interface (syscalls)
+        vm.v_interface = new VirtualInterface(image, rootFrame, keys); //construct interface (syscalls)
 
         //this program executes 6,442,254,338 instructions and can be used to bench the VM
         //00: lui $2, 0x7FFF

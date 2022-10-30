@@ -10,7 +10,7 @@ import java.lang.reflect.*;
 import java.util.Iterator;
 import java.util.Random;
 
-public class BrockVirtualInterface implements VirtualMachine.VirtualInterface {
+public class VirtualInterface implements VirtualMachine.VirtualInterface {
 
     // Id of zero indicates null 
     int next_id = 1;
@@ -25,7 +25,7 @@ public class BrockVirtualInterface implements VirtualMachine.VirtualInterface {
     boolean processing = false;
     Main.KeyRememberer keys;
 
-    public BrockVirtualInterface(BufferedImage image, JFrame rootFrame, Main.KeyRememberer keys){
+    public VirtualInterface(BufferedImage image, JFrame rootFrame, Main.KeyRememberer keys){
         this.image = image;
         this.keys = keys;
         this.rootFrame = rootFrame;
