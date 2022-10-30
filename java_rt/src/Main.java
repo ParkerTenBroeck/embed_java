@@ -1,6 +1,5 @@
 import BasicIO.BasicForm;
 import BasicIO.GeneralCanvas;
-import Media.Picture;
 import Media.Turtle;
 import Media.TurtleDisplayer;
 
@@ -9,10 +8,8 @@ import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.image.BufferedImage;
-import java.io.File;
 import java.io.InputStream;
 import java.lang.reflect.Field;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Random;
 
@@ -26,7 +23,6 @@ public class Main {
         BasicForm basicForm;
         GeneralCanvas canvas;
         BufferedImage image;
-        Picture colorPicture;
         JFrame frame;
         // all this below is reflection madness don't look at it for too long, or you'll lose your mind >:)
         {
@@ -35,11 +31,6 @@ public class Main {
                     Field basicFormField = TurtleDisplayer.class.getDeclaredField("bf");
                     basicFormField.setAccessible(true);
                     basicForm = (BasicForm) basicFormField.get(display);
-                }
-                {
-                    Field pcolorField = TurtleDisplayer.class.getDeclaredField("pcolor");
-                    pcolorField.setAccessible(true);
-                    colorPicture = (Picture) pcolorField.get(display);
                 }
                 {
                     Field anglepanelField = Turtle.class.getDeclaredField("canvas");

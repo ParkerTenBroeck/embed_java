@@ -1,5 +1,3 @@
-import java.util.Random;
-
 /**
  * A simple implementation of a slightly modified MIPSr3 instruction set in java
  * (the main difference is lack of FPU, 64bit mode, paging, Branch delay slot and memory delay slot)
@@ -18,17 +16,17 @@ public class VirtualMachine {
     // General purpose registers
     protected int[] registers = new int[32];
     // VM's working memory
-    protected int[] memory = new int[0];
+    protected volatile int[] memory = new int[0];
     protected boolean running = false;
 
     protected long instructionsRan = 0;
 
     // this can only have 2 valid values 0 or 1 (yes I know it should be a bool but this is cheaper)
     // this is used for atomic read and writes any modification to memory should set this to 0
-    protected byte LLVal = 0;
+    protected volatile byte LLVal = 0;
 
     // The interface to the outside world brought to you by system calls. (and kinda sorta some breakpoints)
-    protected VirtualInterface v_interface;
+    protected volatile VirtualInterface v_interface;
 
     public void reset(){
         this.registers = new int[32];

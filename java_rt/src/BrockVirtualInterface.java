@@ -4,8 +4,6 @@ import Media.TurtleDisplayer;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.lang.reflect.*;
@@ -137,7 +135,7 @@ public class BrockVirtualInterface implements VirtualMachine.VirtualInterface {
             case 101:
                 {
                     Object o = this.get_object(emu.registers[4]);
-                    Class clazz = o.getClass();
+                    Class<?> clazz = o.getClass();
                     int id = this.insert_object(clazz);
                     emu.registers[2] = id;
                 }
@@ -155,14 +153,7 @@ public class BrockVirtualInterface implements VirtualMachine.VirtualInterface {
                 break;
             case 103:
                 {
-                    Class clazz = (Class)this.get_object(emu.registers[4]);
-                    try{
-                        Method m = clazz.getMethod("", new Class[]{});
-                        Object ret = m.invoke(null, null);
-                        Class i_clazz = int.class;
-                    }catch (Exception e){
-
-                    }
+                    Class<?> clazz = (Class<?>)this.get_object(emu.registers[4]);
                     String name = clazz.getName();
                     int id = this.insert_object(name);
                     emu.registers[2] = id;
@@ -231,7 +222,7 @@ public class BrockVirtualInterface implements VirtualMachine.VirtualInterface {
 
             case 109:
                 {
-                    Class clazz = (Class)this.get_object(emu.registers[4]);
+                    Class<?> clazz = (Class<?>)this.get_object(emu.registers[4]);
                     Field[] fields = clazz.getDeclaredFields();
                     int id = this.insert_object(fields);
                     emu.registers[2] = id;
@@ -242,7 +233,7 @@ public class BrockVirtualInterface implements VirtualMachine.VirtualInterface {
 
             case 110:
                 {
-                    Class clazz = (Class)this.get_object(emu.registers[4]);
+                    Class<?> clazz = (Class<?>)this.get_object(emu.registers[4]);
                     Method[] fields = clazz.getDeclaredMethods();
 
                     int id = this.insert_object(fields);
@@ -252,8 +243,8 @@ public class BrockVirtualInterface implements VirtualMachine.VirtualInterface {
                 break;
             case 111:
                 {
-                    Class clazz = (Class)this.get_object(emu.registers[4]);
-                    Constructor[] fields = clazz.getDeclaredConstructors();
+                    Class<?> clazz = (Class<?>)this.get_object(emu.registers[4]);
+                    Constructor<?>[] fields = clazz.getDeclaredConstructors();
 
                     int id = this.insert_object(fields);
                     emu.registers[2] = id;
@@ -290,7 +281,7 @@ public class BrockVirtualInterface implements VirtualMachine.VirtualInterface {
                         for(int i = ptr; i < ptr + len; i++){
                             builder.append((char)emu.getByte(i));
                         }
-                        Class clazz = Class.forName(builder.toString());
+                        Class<?> clazz = Class.forName(builder.toString());
                         emu.registers[2] = this.insert_object(clazz);
                     }catch (Exception e){
                         emu.registers[2] = 0;
@@ -299,9 +290,9 @@ public class BrockVirtualInterface implements VirtualMachine.VirtualInterface {
                 break;
 
             case 116:{
-                Class clazz = (Class)this.get_object(emu.registers[4]);
+                Class<?> clazz = (Class<?>)this.get_object(emu.registers[4]);
                 String name = (String)this.get_object(emu.registers[5]);
-                Class[] parameters = java.util.stream.Stream.of((Object[])this.get_object(emu.registers[6])).toArray(Class[]::new);
+                Class<?>[] parameters = java.util.stream.Stream.of((Object[])this.get_object(emu.registers[6])).toArray(Class<?>[]::new);
                 try{
                     Method method = clazz.getMethod(name, parameters);;
 
@@ -312,10 +303,10 @@ public class BrockVirtualInterface implements VirtualMachine.VirtualInterface {
             }
             break;
             case 117:{
-                Class clazz = (Class)this.get_object(emu.registers[4]);
-                Class[] parameters = java.util.stream.Stream.of((Object[])this.get_object(emu.registers[5])).toArray(Class[]::new);
+                Class<?> clazz = (Class<?>)this.get_object(emu.registers[4]);
+                Class<?>[] parameters = java.util.stream.Stream.of((Object[])this.get_object(emu.registers[5])).toArray(Class<?>[]::new);
                 try{
-                    Constructor method = clazz.getConstructor(parameters);;
+                    Constructor<?> method = clazz.getConstructor(parameters);;
                     emu.registers[2] = this.insert_object(method);
                 }catch (Exception e){
                     emu.registers[2] = 0;
@@ -323,7 +314,7 @@ public class BrockVirtualInterface implements VirtualMachine.VirtualInterface {
             }
             break;
             case 118:{
-                Class clazz = (Class)this.get_object(emu.registers[4]);
+                Class<?> clazz = (Class<?>)this.get_object(emu.registers[4]);
                 String name = (String)this.get_object(emu.registers[5]);
                 try{
                     Field method = clazz.getField(name);
@@ -493,7 +484,7 @@ public class BrockVirtualInterface implements VirtualMachine.VirtualInterface {
 
             case 207:
             {
-                Turtle turtle = (Turtle)this.get_object(emu.registers[4]);
+                //Turtle turtle = (Turtle)this.get_object(emu.registers[4]);
                 //turtle.
             }
             break;
@@ -530,7 +521,7 @@ public class BrockVirtualInterface implements VirtualMachine.VirtualInterface {
     }
 
     private void processDrawCall(VirtualMachine emu) {
-        ArrayList<Byte> data = new ArrayList(emu.registers[5]);
+        ArrayList<Byte> data = new ArrayList<Byte>(emu.registers[5]);
         for (int i = 0; i < emu.registers[5]; i ++){
             data.add(emu.getByte(i + emu.registers[4]));
         }
