@@ -2,7 +2,7 @@ extern crate alloc;
 
 use super::class::ClassRef;
 use super::object::ObjectRef;
-use crate::sys::*;
+use crate::arch::*;
 use alloc::string::String;
 
 pub struct JString;

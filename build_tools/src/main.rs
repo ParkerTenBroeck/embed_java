@@ -130,8 +130,7 @@ fn main() {
                 run_cmd.current_dir(im_dest);
                 run_cmd.arg("-d");
                 run_cmd.arg(im_dest);
-                for cf in Some(im_dest)
-                {
+                for cf in Some(im_dest) {
                     // println!("{:?}", cf);
                     run_cmd.arg("-cp");
                     run_cmd.arg(cf);

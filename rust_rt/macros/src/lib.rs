@@ -1,7 +1,7 @@
 #![allow(warnings)]
 
 extern crate proc_macro;
-use proc_macro2::{TokenStream, Span};
+use proc_macro2::{Span, TokenStream};
 
 #[proc_macro]
 pub fn java(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
@@ -33,7 +33,6 @@ pub fn java(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
     "fn answer() -> u32 { 42 }".parse().unwrap()
 }
 
-
 #[proc_macro]
 pub fn embed_java(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let ts2 = TokenStream::from(item);
@@ -42,11 +41,11 @@ pub fn embed_java(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let (class_name, code) = reconstruct(ts2);
 
     use proc_macro2::TokenTree::*;
-    
+
     // include_bytes!()
     // panic!("{:?}", std::env::var_os("OUT_DIR"));
     let mut string = String::new();
-    for (k,v) in std::env::vars_os(){
+    for (k, v) in std::env::vars_os() {
         string.push_str(k.to_str().unwrap());
         string.push_str(": ");
         string.push_str(v.to_str().unwrap());
@@ -58,15 +57,14 @@ pub fn embed_java(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
     // "fn answer() -> u32 { 42 }".parse().unwrap()
 }
 
-
-fn reconstruct(stream: TokenStream) -> (String, String){
+fn reconstruct(stream: TokenStream) -> (String, String) {
     let mut out = String::new();
     let mut class_name = String::new();
 
     let mut iter = stream.into_iter().peekable();
 
-    while let Some(next) = iter.next(){
-        match next{
+    while let Some(next) = iter.next() {
+        match next {
             proc_macro2::TokenTree::Group(_) => todo!(),
             proc_macro2::TokenTree::Ident(_) => todo!(),
             proc_macro2::TokenTree::Punct(_) => todo!(),

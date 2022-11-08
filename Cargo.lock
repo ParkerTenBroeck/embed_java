@@ -67,7 +67,6 @@ dependencies = [
  "lazy_static",
  "macros",
  "rlib",
- "spin 0.9.4",
  "wee_alloc",
 ]
 
@@ -89,6 +88,9 @@ dependencies = [
 [[package]]
 name = "rlib"
 version = "0.1.0"
+dependencies = [
+ "spin 0.9.4",
+]
 
 [[package]]
 name = "same-file"

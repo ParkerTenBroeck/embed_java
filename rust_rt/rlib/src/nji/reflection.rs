@@ -1,4 +1,4 @@
-use crate::sys::{syscall_sss_ss, INVOKE_METHOD};
+use crate::arch::{syscall_ss_ss, syscall_sss_ss, INVOKE_CONSTRUCTOR, INVOKE_METHOD};
 
 use super::object::{Object, ObjectArrayRef, ObjectRef};
 
@@ -45,7 +45,30 @@ impl MethodRef {
 pub struct Field;
 pub type FieldRef = ObjectRef<Field>;
 
+impl FieldRef {
+    pub fn get_value() {}
+}
+
 pub struct Constructor;
 pub type ConstructorRef = ObjectRef<Constructor>;
 
-impl ConstructorRef {}
+impl ConstructorRef {
+    pub fn invoke(
+        &self,
+        arguments: &mut ObjectArrayRef<Object>,
+    ) -> Result<Option<ObjectRef<Object>>, ObjectRef<Object>> {
+        let arg_id = arguments.id_bits();
+        unsafe {
+            let (ret, err) = syscall_ss_ss::<INVOKE_CONSTRUCTOR>(self.id_bits(), arg_id);
+            if ret == 0 {
+                if err == 0 {
+                    Ok(None)
+                } else {
+                    Err(ObjectRef::from_id_bits_unchecked(err))
+                }
+            } else {
+                Ok(Some(ObjectRef::from_id_bits_unchecked(ret)))
+            }
+        }
+    }
+}

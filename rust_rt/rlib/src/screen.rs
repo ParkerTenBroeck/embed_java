@@ -2,7 +2,7 @@ extern crate alloc;
 
 use alloc::vec::Vec;
 
-use crate::sys::{syscall_ss_v, syscall_v_ss, SCREEN_WIDTH_HEIGHT, SEND_MAIN_SCREEN_DRAW_CALL};
+use crate::arch::{syscall_ss_v, syscall_v_ss, SCREEN_WIDTH_HEIGHT, SEND_MAIN_SCREEN_DRAW_CALL};
 
 #[derive(Default, Clone, Copy)]
 pub struct ScreeenPoint {

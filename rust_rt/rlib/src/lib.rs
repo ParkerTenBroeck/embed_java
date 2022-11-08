@@ -11,45 +11,34 @@
 #![allow(incomplete_features)]
 #![feature(generic_const_exprs)]
 #![feature(negative_impls)]
+#![feature(box_syntax)]
 
-pub mod brock_interface;
-pub mod core_rust;
+#[cfg(not(target_arch = "mips"))]
+compile_error!("ONLY MIPS ARCHITECTURE SUPPORTED");
+#[cfg(not(target_endian = "big"))]
+compile_error!("NOT BIG ENDIAN");
+
+pub mod brock;
 pub mod nji;
+
+pub mod core_rust;
 pub mod screen;
-pub mod sys;
+pub mod rt;
+pub mod arch;
 
-#[no_mangle]
-#[naked]
-#[link_section = ".text.start"]
-extern "C" fn _start() -> ! {
-    unsafe {
-        core::arch::asm! {
-            ".set noat",
-            //".cpload $25",
-            "la $gp, _gp_disp",
-            "la $sp, _sp ",
-            "move $fp, $sp",
-            "jal main",
-            "1:",
-            "syscall 0",
-            "b 1b", options(noreturn),
-        }
-    }
-}
 
-extern "C" {
-    pub fn main();
-}
+pub mod process;
+pub mod sync;
+pub mod thread;
 
-#[inline(always)]
-/// # Safety
-/// this is the start of the heap dont touch it if you arent the global allocator ;)
-pub unsafe fn heap_address() -> *mut u8 {
-    let ret;
-    core::arch::asm!(
-        ".set noat",
-        "la {0}, _heap",
-        out(reg) ret
-    );
-    ret
-}
+pub use core::*;
+
+#[cfg(feature = "alloc")]
+extern crate alloc;
+
+#[cfg(feature = "alloc")]
+pub use alloc::*; 
+
+
+pub mod macros;
+pub use macros::*;

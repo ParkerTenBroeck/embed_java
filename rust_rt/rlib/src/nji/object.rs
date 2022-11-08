@@ -8,7 +8,7 @@ use core::{
 extern crate alloc;
 use alloc::{string::String, vec::Vec};
 
-use crate::sys::*;
+use crate::arch::*;
 
 use super::{class::ClassRef, primitives::JStringRef};
 
@@ -119,6 +119,18 @@ impl Drop for Object {
 pub struct ObjectArray<T>(PhantomData<T>);
 
 pub type ObjectArrayRef<T> = ObjectRef<ObjectArray<T>>;
+
+// impl<T> Into<ObjectArrayRef<Object>> for Vec<ObjectRef<T>>{
+//     fn into(self) -> ObjectArrayRef<Object> {
+//         panic!();
+//     }
+// }
+
+impl<T> Into<ObjectArrayRef<T>> for Vec<ObjectRef<T>>{
+    fn into(self) -> ObjectArrayRef<T> {
+        ObjectArrayRef::from_vec(self)
+    }
+}
 
 impl<T> ObjectArrayRef<T> {
     pub fn new(length: usize) -> Self {

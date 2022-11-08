@@ -110,30 +110,32 @@ public class Main {
     }
 
     public static void runVm(BufferedImage image, JFrame rootFrame, KeyRememberer keys) throws Exception{
-        VirtualMachine vm = new VirtualMachine(); //create vm
-        vm.memory = new int[2 << 25]; //allocate memory (256 MiB)
+        VirtualMachine vm = new VirtualMachine();
         vm.v_interface = new VirtualInterface(image, rootFrame, keys); //construct interface (syscalls)
+       
+        VirtualMachine.VirtualMachineThreadState vmmt = vm.createNextVMThreadState(); //create vm
+        vmmt.memory = new int[2 << 25]; //allocate memory (256 MiB)
 
         //load binary into memory
         byte[] bytes = read_bin();
         for(int i = 0; i < bytes.length; i ++){
-            vm.setByte(i, bytes[i]);
+            vmmt.setByte(i, bytes[i]);
         }
         
         while (true){
             long startTime = System.nanoTime();
-            vm.run();
+            vmmt.run();
             long endTime = System.nanoTime();
             System.out.printf("VM Execution time: %.8fs%n", (endTime - startTime) / 1000000000.0);
 
             while (true){
                 if (keys.isKeyCharPressed('r')){
-                    vm.reset();
+                    vmmt.reset();
                     for(int i = 0; i < bytes.length; i ++){
-                        vm.setByte(i, bytes[i]);
+                        vmmt.setByte(i, bytes[i]);
                     }
-                    for(int i = (bytes.length + 3) / 4; i < vm.memory.length; i ++){
-                        vm.memory[i] = 0;
+                    for(int i = (bytes.length + 3) / 4; i < vmmt.memory.length; i ++){
+                        vmmt.memory[i] = 0;
                     }
                     break;
                 }else if (keys.isKeyCharPressed('e')){

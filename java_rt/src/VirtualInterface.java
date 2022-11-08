@@ -31,6 +31,7 @@ public class VirtualInterface implements VirtualMachine.VirtualInterface {
         this.rootFrame = rootFrame;
     }
 
+
     private int insert_object(Object obj){
         if (this.next_id == 0){
             this.next_id++;
@@ -54,7 +55,7 @@ public class VirtualInterface implements VirtualMachine.VirtualInterface {
     }
 
     @Override
-    public void system_call(VirtualMachine emu, int call_id) {
+    public void system_call(VirtualMachine.VirtualMachineThreadState emu, int call_id) {
         switch (call_id){
             case 0:
                 emu.running = false;
@@ -75,8 +76,8 @@ public class VirtualInterface implements VirtualMachine.VirtualInterface {
                 }catch (Exception ignore){}
                 break;
             case 3:
-                emu.registers[3] = (int)(emu.instructionsRan >> 32);
-                emu.registers[2] = (int)emu.instructionsRan;
+                emu.registers[3] = 0;//(int)(emu.instructionsRan >> 32);
+                emu.registers[2] = 0;//(int)emu.instructionsRan;
                 break;
             case 4:
                 int address = emu.registers[4];
@@ -346,6 +347,23 @@ public class VirtualInterface implements VirtualMachine.VirtualInterface {
                 }
             }
             break;
+            case 120:{
+                Constructor<?> constructor = (Constructor<?>)this.get_object(emu.registers[4]);
+                Object[] arguments = (Object[])this.get_object(emu.registers[5]);
+                try{
+                    Object ret = constructor.newInstance(arguments);
+                    if (ret == null){
+                        emu.registers[2] = 0;
+                    }else{
+                        emu.registers[2] = this.insert_object(ret);
+                    }
+                    emu.registers[3] = 0;
+                }catch (Exception e){
+                    emu.registers[2] = 0;
+                    emu.registers[3] = this.insert_object(e);
+                }
+            }
+            break;
 
             case 150:
                 emu.registers[2] = this.insert_object(emu.registers[4] != 0);
@@ -515,12 +533,42 @@ public class VirtualInterface implements VirtualMachine.VirtualInterface {
                 emu.registers[2] = this.image.getWidth();
                 emu.registers[3] = this.image.getHeight();
                 break;
+            
+            // idk system interface or smtin
+            case 1000:
+                int start_pc = emu.registers[4];
+                int arg_r4_p = emu.registers[5];
+                int stack_start = emu.registers[6];
+                var vm = emu.createAccociatedVMState();
+                vm.pc = start_pc;
+                vm.registers[4] = arg_r4_p;
+                vm.registers[31] = 0xFFFFFFFF;
+                vm.registers[29] = stack_start;
+                // default to shared memory (all)
+                vm.memory = emu.memory;
+                Thread t = new Thread(){
+                    @Override
+                    public void run() {
+                        try{
+                            vm.run();     
+                        }catch(Exception e){
+                            e.printStackTrace();
+                        }
+                    }
+                };
+                // return thread id of new thread to old thread
+                emu.registers[2] = vm.getThreadId();
+                t.start();
+                break;
+            case 1001:
+                System.exit(emu.registers[4]);
+                break;
             default:
                 throw new RuntimeException("Invalid System Call: " + call_id);
         }
     }
 
-    private void processDrawCall(VirtualMachine emu) {
+    private void processDrawCall(VirtualMachine.VirtualMachineThreadState emu) {
         ArrayList<Byte> data = new ArrayList<Byte>(emu.registers[5]);
         for (int i = 0; i < emu.registers[5]; i ++){
             data.add(emu.getByte(i + emu.registers[4]));
@@ -659,7 +707,7 @@ public class VirtualInterface implements VirtualMachine.VirtualInterface {
     }
 
     @Override
-    public void breakpoint(VirtualMachine emu, int call_id) {
+    public void breakpoint(VirtualMachine.VirtualMachineThreadState emu, int call_id) {
         throw new RuntimeException("bruh");
     }
 

@@ -4,8 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-rlib = { path = "../rlib" }
-spin = "*"
+rlib = { path = "../rlib", features = ["alloc"] }
 wee_alloc = { version = "*", features = ["static_array_backend"]}
 macros = { version = "*", path = "../macros"}
 lazy_static = { version = "*", features = ["spin_no_std"]}

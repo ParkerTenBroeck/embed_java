@@ -2,7 +2,15 @@
 name = "rlib"
 version = "0.1.0"
 edition = "2021"
+description = "A rust standard library of sorts giving access to a hopfuly faithful bare bones system access"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+spin = "0.9.4"
+
+[features]
+default = ["provide_panic_handler"]
+alloc = []
+provide_panic_handler = []
+

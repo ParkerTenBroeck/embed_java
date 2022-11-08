@@ -1,7 +1,7 @@
 extern crate alloc;
 use alloc::{string::String, vec::Vec};
 
-use crate::sys::*;
+use crate::arch::*;
 
 use super::{
     object::{ObjectArrayRef, ObjectRef},
@@ -62,7 +62,7 @@ impl ClassRef {
         }
     }
 
-    pub fn get_constructor(&self, parameters: ObjectArrayRef<ClassRef>) -> Option<ConstructorRef> {
+    pub fn get_constructor(&self, parameters: ObjectArrayRef<Class>) -> Option<ConstructorRef> {
         unsafe {
             ConstructorRef::from_id_bits(syscall_ss_s::<GET_CLASS_CONSTRUCTOR>(
                 self.id_bits(),
