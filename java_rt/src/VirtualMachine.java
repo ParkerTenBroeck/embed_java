@@ -26,7 +26,7 @@ public class VirtualMachine {
     private volatile List<Thread> threads = Collections.synchronizedList(new ArrayList<Thread>());
 
     // returns the next thread ID to use
-    public int nextThreadId(){
+    private int nextThreadId(){
         return this.nextThreadId.getAndIncrement();
     }
 
@@ -43,9 +43,15 @@ public class VirtualMachine {
         protected int high = 0;
         // General purpose registers
         protected int[] registers = new int[32];
+        
         // VM's working memory
         // this could be shared by another thread so watch out >:)
-        protected volatile int[] memory = new int[0];
+        protected volatile int[] sharedMemory = null;
+        // this is owned by this particular thread
+        // pretty much for the stack
+        // this cannot be used for program memory
+        private int[] ownedMemory = new int[0x1000];
+        
         protected boolean running = false;
         private int threadId;
 
@@ -86,7 +92,7 @@ public class VirtualMachine {
                 int id;
                 loop: 
                 while (true){
-                    int opCode = memory[this.pc >> 2];
+                    int opCode = sharedMemory[this.pc >> 2];
                     this.pc += 4;
     
                     switch (opCode >>> 26) {
@@ -633,7 +639,7 @@ public class VirtualMachine {
                             s = (opCode >>> 21) & 0B11111;
                             t = (opCode >>> 16) & 0B11111;
                             SEi = (opCode << 16) >> 16;
-                            this.registers[t] = this.memory[(this.registers[s] + SEi) >>> 2];
+                            this.registers[t] = this.getWord(this.registers[s] + SEi);
                             break;
     
                         case 0b110000:
@@ -642,7 +648,7 @@ public class VirtualMachine {
                             t = (opCode >>> 16) & 0B11111;
                             SEi = (opCode << 16) >> 16;
                             LLVal = true;
-                            this.registers[t] = this.memory[(this.registers[s] + SEi) >>> 2];
+                            this.registers[t] = this.getWord(this.registers[s] + SEi);
                             break;
                         case 0b111000:
                             //SC
@@ -650,7 +656,7 @@ public class VirtualMachine {
                             t = (opCode >>> 16) & 0B11111;
                             SEi = (opCode << 16) >> 16;
                             if (LLVal){
-                                this.memory[(this.registers[s] + SEi) >>> 2] = this.registers[t];
+                                this.setWord(this.registers[s] + SEi, this.registers[t]);
                                 this.registers[t] = 1;
                             }else{
                                 this.registers[t] = 0;
@@ -681,7 +687,8 @@ public class VirtualMachine {
                             t = (opCode >>> 16) & 0B11111;
                             SEi = (opCode << 16) >> 16;
                             LLVal = false;
-                            this.memory[(this.registers[s] + SEi) >>> 2] = this.registers[t];
+                            this.setWord(this.registers[s] + SEi, this.registers[t]);
+                            // this.sharedMemory[(this.registers[s] + SEi) >>> 2] = this.registers[t];
                             break;
                         default:
                             throw new Exception("Invalid Instruction: " + opCode + " at: " + (this.pc - 4));
@@ -690,7 +697,7 @@ public class VirtualMachine {
             }catch(Exception e){
                 System.err.println("Thread: " + this.threadId + " Run time exception: " + e);
                 try{
-                    System.out.printf("0x%08X: 0x%08X%n", this.pc, this.memory[this.pc >> 2]);
+                    System.out.printf("0x%08X: 0x%08X%n", this.pc, this.sharedMemory[this.pc >> 2]);
                 }catch (Exception ignore){
                 }
                 this.running = false;
@@ -700,62 +707,128 @@ public class VirtualMachine {
         }
     
         public void setWord(int address, int data){
-            this.memory[address >>> 2] = data;
+            if (address >= 0){
+                this.sharedMemory[address >>> 2] = data;
+            }else{
+                address = address - 0x80000000;
+                this.ownedMemory[address >>> 2] = data;
+            }
         }
     
         public void setHalf(int address, short data){
-            if ((address & 0b10) == 0) {
-                address >>>= 2;
-                this.memory[address] &= 0x0000FFFF;
-                this.memory[address] |= data << 16;
+            if (address >= 0){
+                if ((address & 0b10) == 0) {
+                    address >>>= 2;
+                    this.sharedMemory[address] &= 0x0000FFFF;
+                    this.sharedMemory[address] |= data << 16;
+                }else{
+                    address >>>= 2;
+                    this.sharedMemory[address] &= 0xFFFF0000;
+                    this.sharedMemory[address] |= ((int)data) & 0xFFFF;
+                }
             }else{
-                address >>>= 2;
-                this.memory[address] &= 0xFFFF0000;
-                this.memory[address] |= ((int)data) & 0xFFFF;
+                address = address - 0x80000000;
+                if ((address & 0b10) == 0) {
+                    address >>>= 2;
+                    this.ownedMemory[address] &= 0x0000FFFF;
+                    this.ownedMemory[address] |= data << 16;
+                }else{
+                    address >>>= 2;
+                    this.ownedMemory[address] &= 0xFFFF0000;
+                    this.ownedMemory[address] |= ((int)data) & 0xFFFF;
+                }
             }
         }
     
         public void setByte(int address, byte data){
-            if ((address & 0b11) == 0) {
-                address >>>= 2;
-                this.memory[address] &= 0x00FFFFFF;
-                this.memory[address] |= (((int)data) & 0xFF) << 24;
-            }else if ((address & 0b11) == 1) {
-                address >>>= 2;
-                this.memory[address] &= 0xFF00FFFF;
-                this.memory[address] |= (((int)data) & 0xFF) << 16;
-            }else if ((address & 0b11) == 2){
-                address >>>= 2;
-                this.memory[address] &= 0xFFFF00FF;
-                this.memory[address] |= (((int)data) & 0xFF) << 8;
+            if (address >= 0){
+                if ((address & 0b11) == 0) {
+                    address >>>= 2;
+                    this.sharedMemory[address] &= 0x00FFFFFF;
+                    this.sharedMemory[address] |= (((int)data) & 0xFF) << 24;
+                }else if ((address & 0b11) == 1) {
+                    address >>>= 2;
+                    this.sharedMemory[address] &= 0xFF00FFFF;
+                    this.sharedMemory[address] |= (((int)data) & 0xFF) << 16;
+                }else if ((address & 0b11) == 2){
+                    address >>>= 2;
+                    this.sharedMemory[address] &= 0xFFFF00FF;
+                    this.sharedMemory[address] |= (((int)data) & 0xFF) << 8;
+                }else{
+                    address >>>= 2;
+                    this.sharedMemory[address] &= 0xFFFFFF00;
+                    this.sharedMemory[address] |= ((int)data) & 0xFF;
+                }
             }else{
-                address >>>= 2;
-                this.memory[address] &= 0xFFFFFF00;
-                this.memory[address] |= ((int)data) & 0xFF;
+                address = address - 0x80000000;
+                if ((address & 0b11) == 0) {
+                    address >>>= 2;
+                    this.ownedMemory[address] &= 0x00FFFFFF;
+                    this.ownedMemory[address] |= (((int)data) & 0xFF) << 24;
+                }else if ((address & 0b11) == 1) {
+                    address >>>= 2;
+                    this.ownedMemory[address] &= 0xFF00FFFF;
+                    this.ownedMemory[address] |= (((int)data) & 0xFF) << 16;
+                }else if ((address & 0b11) == 2){
+                    address >>>= 2;
+                    this.ownedMemory[address] &= 0xFFFF00FF;
+                    this.ownedMemory[address] |= (((int)data) & 0xFF) << 8;
+                }else{
+                    address >>>= 2;
+                    this.ownedMemory[address] &= 0xFFFFFF00;
+                    this.ownedMemory[address] |= ((int)data) & 0xFF;
+                }
             }
         }
     
         public int getWord(int address){
-            return this.memory[address >>> 2];
+            if (address >= 0){
+                return this.sharedMemory[address >>> 2];
+            }else{
+                address = address - 0x80000000;
+                return this.ownedMemory[address >>> 2];
+            }
         }
     
         public short getHalf(int address){
-            if ((address & 0b10) == 0){
-                return (short)((this.memory[address >>> 2]) >> 16);
+            if (address >= 0){
+                if ((address & 0b10) == 0){
+                    return (short)((this.sharedMemory[address >>> 2]) >> 16);
+                }else{
+                    return (short)(this.sharedMemory[address >>> 2]);
+                }
             }else{
-                return (short)(this.memory[address >>> 2]);
+                address = address - 0x80000000;
+                if ((address & 0b10) == 0){
+                    return (short)((this.ownedMemory[address >>> 2]) >> 16);
+                }else{
+                    return (short)(this.ownedMemory[address >>> 2]);
+                }
             }
         }
     
         public byte getByte(int address){
-            if ((address & 0b11) == 0){
-                return (byte)((this.memory[address >>> 2]) >> 24);
-            }else if ((address & 0b11) == 1){
-                return (byte)((this.memory[address >>> 2]) >> 16);
-            }else if ((address & 0b11) == 2){
-                return (byte)((this.memory[address >>> 2]) >> 8);
+            if (address >= 0){
+                if ((address & 0b11) == 0){
+                    return (byte)((this.sharedMemory[address >>> 2]) >> 24);
+                }else if ((address & 0b11) == 1){
+                    return (byte)((this.sharedMemory[address >>> 2]) >> 16);
+                }else if ((address & 0b11) == 2){
+                    return (byte)((this.sharedMemory[address >>> 2]) >> 8);
+                }else{
+                    return (byte)(this.sharedMemory[address >>> 2]);
+                }
             }else{
-                return (byte)(this.memory[address >>> 2]);
+                address = address - 0x80000000;
+                if ((address & 0b11) == 0){
+                    return (byte)((this.ownedMemory[address >>> 2]) >> 24);
+                }else if ((address & 0b11) == 1){
+                    return (byte)((this.ownedMemory[address >>> 2]) >> 16);
+                }else if ((address & 0b11) == 2){
+                    return (byte)((this.ownedMemory[address >>> 2]) >> 8);
+                }else{
+                    return (byte)(this.ownedMemory[address >>> 2]);
+                }
             }
         }
     

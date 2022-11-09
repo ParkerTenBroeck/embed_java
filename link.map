@@ -75,10 +75,13 @@ SECTIONS
         *(.rodata*)   
     }
     . = ALIGN(0x8);
-    _stack_start = . + 0x10000;
-    _sp = _stack_start;
-    . = ALIGN(0x1000);
     _heap = .;
+    . = ALIGN(0x8);
+
+
+    _stack_start = 0x81000;
+    _sp = _stack_start;
+
 
     
 

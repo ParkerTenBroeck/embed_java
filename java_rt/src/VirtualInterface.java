@@ -66,8 +66,8 @@ public class VirtualInterface implements VirtualMachine.VirtualInterface {
             case 2:
                 try{
                     emu.reset();
-                    for(int i = 0; i < emu.memory.length; i ++){
-                        emu.memory[i] = 0;
+                    for(int i = 0; i < emu.sharedMemory.length; i ++){
+                        emu.sharedMemory[i] = 0;
                     }
                     byte[] bytes = Main.read_bin();
                     for(int i = 0; i < bytes.length; i ++){
@@ -559,7 +559,7 @@ public class VirtualInterface implements VirtualMachine.VirtualInterface {
                 vm.registers[31] = 0xFFFFFFFF;
                 vm.registers[29] = stack_start;
                 // default to shared memory (all)
-                vm.memory = emu.memory;
+                vm.sharedMemory = emu.sharedMemory;
                 Thread t = new Thread(){
                     @Override
                     public void run() {

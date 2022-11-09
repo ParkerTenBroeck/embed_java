@@ -114,7 +114,7 @@ public class Main {
         vm.v_interface = new VirtualInterface(image, rootFrame, keys); //construct interface (syscalls)
        
         VirtualMachine.VirtualMachineThreadState vmmt = vm.createNextVMThreadState(); //create vm
-        vmmt.memory = new int[2 << 25]; //allocate memory (256 MiB)
+        vmmt.sharedMemory = new int[2 << 25]; //allocate memory (256 MiB)
 
         //load binary into memory
         byte[] bytes = read_bin();
@@ -134,8 +134,8 @@ public class Main {
                     for(int i = 0; i < bytes.length; i ++){
                         vmmt.setByte(i, bytes[i]);
                     }
-                    for(int i = (bytes.length + 3) / 4; i < vmmt.memory.length; i ++){
-                        vmmt.memory[i] = 0;
+                    for(int i = (bytes.length + 3) / 4; i < vmmt.sharedMemory.length; i ++){
+                        vmmt.sharedMemory[i] = 0;
                     }
                     break;
                 }else if (keys.isKeyCharPressed('e')){

@@ -1,25 +1,21 @@
-#[no_mangle]
-#[naked]
-#[link_section = ".text.start"]
-extern "C" fn _start() -> ! {
-    unsafe {
-        core::arch::asm! {
-            ".set noat",
-            //".cpload $25",
-            "la $gp, _gp_disp",
-            "la $sp, _sp ",
-            "move $fp, $sp",
-            "jal main",
-            "1:",
-            "syscall 0",
-            "b 1b", options(noreturn),
-        }
-    }
-}
 
-extern "C" {
-    pub fn main();
-}
+// Entry point to program
+core::arch::global_asm!(
+    // we really should zero the bss section but.. well java does that for us
+    // so uhhh no :)
+    ".section .text.start",
+    ".globl _start",
+    "_start:",
+    "la $gp, _gp",
+    "la $sp, _sp ",
+    "move $fp, $sp",
+    "la $ra, 0xFFFFFFFF",
+    "jal main",
+    "1:",
+    "syscall 0",
+    "b 1b",
+);
+
 
 #[inline(always)]
 /// # Safety

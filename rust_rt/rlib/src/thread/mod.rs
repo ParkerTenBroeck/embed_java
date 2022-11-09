@@ -21,13 +21,6 @@ where
     F: Send + 'static,
     T: Send + 'static,
 {
-    let stack_size = 0x1000;
-    let stack_layout = alloc::alloc::Layout::from_size_align(stack_size, 0x8).unwrap();
-
-    let raw_stack = unsafe{
-        let raw_stack = alloc::alloc::alloc(stack_layout);
-       raw_stack as *mut core::ffi::c_void
-    };
 
     let out_packet = Arc::new(Packet{
         result: UnsafeCell::new(None)
@@ -41,19 +34,13 @@ where
             *new_thread_packet.result.get() = Some(Ok(res))
         }
         drop(new_thread_packet);
-        
-        // UHHHHHHH THIS IS BAD PLEASE THINK OF A WAY TO FIX IT :)
-        // THIS JUST DEALLOCATES THE STACK WHILE ITS USING IT TO UHH DEALOCATE ITSELF LOL
-        unsafe{
-            alloc::alloc::dealloc(raw_stack as *mut u8, stack_layout)
-        }
     };
 
-    let main: Box<dyn FnOnce() /* + 'static + Send */> = box main;
+    let main: Box<dyn FnOnce() + 'static + Send> = box main;
     let p = Box::into_raw(box main);
 
     let p = p as *mut core::ffi::c_void;
-    let res = unsafe { create_thread(run_thread, p, raw_stack.add(stack_size as usize)) };
+    let res = unsafe { create_thread(run_thread, p, core::ptr::from_exposed_addr_mut(0x80001000)) };
 
     if let Err(err) = res {
         unsafe {

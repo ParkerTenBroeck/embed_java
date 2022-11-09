@@ -21,7 +21,6 @@ pub fn main() {
     let mut threads = vec::Vec::new();
     for i in 0..200{
         let t = rlib::thread::spawn(move || {
-            //rlib::arch::sleep_ms(1000);
             println!("Hello from thread: {}, loop count: {i}", i);
             (i, i + 44)
         });
@@ -31,8 +30,13 @@ pub fn main() {
         let res = t.join().unwrap();
         println!("thread returned {:?}", res);
     }
-    
-    rlib::process::exit(0);
+
+    for i in 0..20000{
+        println!("{i}");
+    }
+
+    rlib::arch::halt();
+    // rlib::process::exit(0);
 
 
 
