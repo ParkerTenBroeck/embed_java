@@ -1,3 +1,6 @@
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -19,6 +22,8 @@ public class VirtualMachine {
 
     // the next threadID to use 
     private AtomicInteger nextThreadId = new AtomicInteger(1);
+
+    private volatile List<Thread> threads = Collections.synchronizedList(new ArrayList<Thread>());
 
     // returns the next thread ID to use
     public int nextThreadId(){
@@ -69,7 +74,6 @@ public class VirtualMachine {
         }
     
         public void run() throws Exception{
-            
             try{
                 this.running = true;
                 int t;

@@ -27,6 +27,15 @@ pub const PRINT_C_STRING: u32 = 4;
 /// Register 4: the char to print
 pub const PRINT_CHAR: u32 = 5;
 
+/// Print a string to stdout
+/// 
+/// Register 4: ptr to string
+/// Register 5: length of string
+pub const PRINT_STR: u32 = 6;
+
+/// Flush Std out
+pub const FLUSH_STDOUT: u32 = 7;
+
 /// Sleep for x ms
 ///
 /// Register 4: the number of ms to sleep for

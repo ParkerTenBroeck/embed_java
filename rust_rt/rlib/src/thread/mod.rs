@@ -1,4 +1,6 @@
-use core::{fmt::Display, num::NonZeroU32, time::Duration};
+use core::{fmt::Display, num::NonZeroU32, time::Duration, cell::UnsafeCell};
+
+use alloc::sync::Arc;
 
 use crate::arch::START_NEW_THREAD;
 
@@ -8,48 +10,64 @@ extern crate alloc;
 #[cfg(feature = "alloc")]
 use alloc::boxed::Box;
 
-pub fn black_box<T>(dummy: T) -> T {
-    unsafe {
-        let ret = core::ptr::read_volatile(&dummy);
-        core::mem::forget(dummy);
-        ret
-    }
-}
+
+type Result<T> = crate::result::Result<T, &'static str>;
+
 
 #[cfg(feature = "alloc")]
-pub fn start_new_thread<F, T>(f: F) -> Result<JoinHandle, ()>
+pub fn spawn<F, T>(f: F) -> Result<JoinHandle<T>>
 where
     F: FnOnce() -> T,
     F: Send + 'static,
     T: Send + 'static,
 {
-
-
-    let stack_size = 0x3FF;
+    let stack_size = 0x1000;
     let stack_layout = alloc::alloc::Layout::from_size_align(stack_size, 0x8).unwrap();
+
     let raw_stack = unsafe{
         let raw_stack = alloc::alloc::alloc(stack_layout);
        raw_stack as *mut core::ffi::c_void
     };
+
+    let out_packet = Arc::new(Packet{
+        result: UnsafeCell::new(None)
+    });
+
+    let new_thread_packet = out_packet.clone();
     
     let main = move || {
         let res = f();
         unsafe{
+            *new_thread_packet.result.get() = Some(Ok(res))
+        }
+        drop(new_thread_packet);
+        
+        // UHHHHHHH THIS IS BAD PLEASE THINK OF A WAY TO FIX IT :)
+        // THIS JUST DEALLOCATES THE STACK WHILE ITS USING IT TO UHH DEALOCATE ITSELF LOL
+        unsafe{
             alloc::alloc::dealloc(raw_stack as *mut u8, stack_layout)
         }
     };
+
     let main: Box<dyn FnOnce() /* + 'static + Send */> = box main;
     let p = Box::into_raw(box main);
 
     let p = p as *mut core::ffi::c_void;
-    let res = unsafe { create_thread(run_thread, p, raw_stack.sub(stack_size as usize)) };
-    if res.is_err() {
+    let res = unsafe { create_thread(run_thread, p, raw_stack.add(stack_size as usize)) };
+
+    if let Err(err) = res {
         unsafe {
             //drop if thread isnt created
             let _ = Box::from_raw(p);
         }
+        return Err(err);
+    }else{
+        return Ok(JoinHandle{
+            thread: res.unwrap(),
+            packet: out_packet,
+        });
     }
-    return res;
+    
 
     extern "C" fn run_thread(main: *mut core::ffi::c_void) -> ! {
         unsafe {
@@ -63,20 +81,50 @@ pub unsafe fn create_thread(
     main: extern "C" fn(*mut core::ffi::c_void) -> !,
     args: *mut core::ffi::c_void,
     stack:  *mut core::ffi::c_void,
-) -> Result<JoinHandle, ()> {
+) -> Result<Thread> {
     let res = crate::arch::syscall_sss_s::<START_NEW_THREAD>(main as u32, args as u32, stack as u32);
     if let Some(id) = NonZeroU32::new(res) {
-        Ok(JoinHandle { id })
+        Ok(Thread { id })
     } else {
-        Err(())
+        Err("Failed to create thread for... idk some reason".into())
     }
 }
 
-pub struct JoinHandle {
+struct Packet<T>{
+    result: UnsafeCell<Option<Result<T>>>,
+}
+
+pub struct JoinHandle<T> {
+    thread: Thread,
+    packet: Arc<Packet<T>>
+}
+
+impl<T> JoinHandle<T>{
+    pub fn thread(&self) -> &Thread{
+        &self.thread
+    }
+
+    pub fn join(mut self) -> Result<T>{
+        while !self.is_finished(){
+            //TODO ISK ASDLKASLKJ
+            crate::arch::sleep_ms(1);
+        }
+        let res = Arc::get_mut(&mut self.packet).unwrap();
+        res.result.get_mut().take().unwrap()
+    }
+
+    pub fn is_finished(&self) -> bool{
+        // this is like high key smart but I stole it from the rust std :)
+        Arc::strong_count(&self.packet) == 1
+    }
+}
+
+pub struct Thread{
+
     id: NonZeroU32,
 }
 
-impl Display for JoinHandle {
+impl Display for Thread {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{}", self.id)
     }

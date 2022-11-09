@@ -37,8 +37,15 @@ pub fn print_zero_term_str(str: &str) {
 
 #[inline(always)]
 pub fn print_str(str: &str) {
-    for char in str.as_bytes() {
-        print_char(*char as char);
+    unsafe{
+        syscall_ss_v::<PRINT_STR>(str.as_ptr() as u32, str.len() as u32)
+    }
+}
+
+#[inline(always)]
+pub fn flush() {
+    unsafe{
+        syscall_v_v::<FLUSH_STDOUT>()
     }
 }
 

@@ -1,13 +1,12 @@
 extern crate alloc;
 pub use alloc::*;
 
-extern crate wee_alloc;
-
-// #[global_allocator]
-// static ALLOCATOR: emballoc::Allocator<0x80000> = emballoc::Allocator::new();
 
 #[global_allocator]
-static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
+static ALLOCATOR: emballoc::Allocator<0x50000> = emballoc::Allocator::new();
+
+// #[global_allocator]
+// static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 // use core::{
 //     alloc::{GlobalAlloc, Layout},

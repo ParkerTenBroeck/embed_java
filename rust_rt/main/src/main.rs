@@ -5,7 +5,7 @@
 #![feature(default_alloc_error_handler)]
 
 pub mod alloc;
-use core::{hint::black_box, time::Duration};
+use core::{hint::black_box, time::Duration, fmt::Write};
 
 use rlib::nji::{
     class::ClassRef,
@@ -18,16 +18,21 @@ pub use rlib::*;
 pub fn main() {
 
 
+    let mut threads = vec::Vec::new();
     for i in 0..200{
-        let t = rlib::thread::start_new_thread(move || {
-            rlib::arch::sleep_ms(1000);
-            //rlib::thread::sleep(Duration::from_millis(1000));
-            println!("Hello from thread: {}, loop count: {i}", -1);
+        let t = rlib::thread::spawn(move || {
+            //rlib::arch::sleep_ms(1000);
+            println!("Hello from thread: {}, loop count: {i}", i);
+            (i, i + 44)
         });
-        t.unwrap();
+        threads.push(t.unwrap());
     }
+    for t in threads{
+        let res = t.join().unwrap();
+        println!("thread returned {:?}", res);
+    }
+    
     rlib::process::exit(0);
-    // panic!("test");
 
 
 

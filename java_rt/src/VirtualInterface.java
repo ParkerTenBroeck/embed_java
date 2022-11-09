@@ -79,7 +79,8 @@ public class VirtualInterface implements VirtualMachine.VirtualInterface {
                 emu.registers[3] = 0;//(int)(emu.instructionsRan >> 32);
                 emu.registers[2] = 0;//(int)emu.instructionsRan;
                 break;
-            case 4:
+            case 4:{
+
                 int address = emu.registers[4];
                 for(int i = 0; i < 500; i ++){
                     byte b = emu.getByte(address);
@@ -89,10 +90,23 @@ public class VirtualInterface implements VirtualMachine.VirtualInterface {
                     System.out.print((char)b);
                     address += 1;
                 }
+            }
                 break;
             case 5:
                 System.out.print((char)emu.registers[4]);
                 break;
+            case 6:{
+                int address = emu.registers[4];
+                for(int i = address; i < address + emu.registers[5]; i ++){
+                    byte b = emu.getByte(i);
+                    System.out.print((char)b);
+                }
+            }
+                break;
+            case 7:{
+                System.out.flush();
+            }
+            break;
             case 50:
                 try{
                     Thread.sleep(emu.registers[4]);
