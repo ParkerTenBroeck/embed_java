@@ -87,7 +87,7 @@ public class VirtualMachine {
         }
 
         public VirtualMachine.VirtualMachineThreadState createAccociatedVMStateWithOwnedMemorySize(int ownedSize) {
-            return createAccociatedVMStateWithOwnedMemorySize(ownedSize);
+            return createNextVMThreadStateWithOwnedMemorySize(ownedSize);
         }
 
         public boolean getLLBit() {
