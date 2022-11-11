@@ -1,5 +1,4 @@
 #![no_std]
-#![no_main]
 #![feature(concat_idents)]
 #![feature(lang_items)]
 #![feature(asm_experimental_arch)]
@@ -18,10 +17,10 @@ compile_error!("ONLY MIPS ARCHITECTURE SUPPORTED");
 #[cfg(not(target_endian = "big"))]
 compile_error!("NOT BIG ENDIAN");
 
+// these are for fun :)
 pub mod brock;
 pub mod nji;
 
-pub mod core_rust;
 pub mod rt;
 pub mod arch;
 pub mod io;

@@ -1,3 +1,4 @@
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -15,7 +16,7 @@ public class VirtualMachine {
     // this is used for atomic read and writes any modification to memory should set this to false
     // this is available to all of the instances of VirtualMachineThreadState tied to this class
     // its intended to be access by multiple threads at once to give the illusion of atomic operations
-    protected volatile boolean LLVal;
+    protected volatile boolean LLVal = false;
 
     // The interface to the outside world brought to you by system calls. (and kinda sorta some breakpoints)
     protected volatile VirtualInterface v_interface;
@@ -23,7 +24,7 @@ public class VirtualMachine {
     // the next threadID to use 
     private AtomicInteger nextThreadId = new AtomicInteger(1);
 
-    private volatile List<Thread> threads = Collections.synchronizedList(new ArrayList<Thread>());
+    private volatile List<WeakReference<Thread>> threads = Collections.synchronizedList(new ArrayList<WeakReference<Thread>>());
 
     // returns the next thread ID to use
     private int nextThreadId(){
@@ -32,6 +33,10 @@ public class VirtualMachine {
 
     public VirtualMachine.VirtualMachineThreadState createNextVMThreadState() {
         return new VirtualMachineThreadState(this.nextThreadId());
+    }
+
+    public VirtualMachine.VirtualMachineThreadState createNextVMThreadStateWithOwnedMemorySize(int size) {
+        return new VirtualMachineThreadState(this.nextThreadId(), size);
     }
 
     public class VirtualMachineThreadState{
@@ -50,15 +55,21 @@ public class VirtualMachine {
         // this is owned by this particular thread
         // pretty much for the stack
         // this cannot be used for program memory
-        private int[] ownedMemory = new int[0x1000];
+        private int[] ownedMemory;
         
         protected boolean running = false;
         private int threadId;
 
         public VirtualMachineThreadState(int threadId){
+            this(threadId, 0x10000);
+        }
+
+        public VirtualMachineThreadState(int threadId, int stackSize){
             this.reset();
             this.threadId = threadId;
+            this.ownedMemory = new int[((stackSize + 0x7) & ~0x7) >> 2];
         }
+
 
         public int getThreadId(){
             return this.threadId;
@@ -73,6 +84,10 @@ public class VirtualMachine {
 
         public VirtualMachine.VirtualMachineThreadState createAccociatedVMState() {
             return createNextVMThreadState();
+        }
+
+        public VirtualMachine.VirtualMachineThreadState createAccociatedVMStateWithOwnedMemorySize(int ownedSize) {
+            return createAccociatedVMStateWithOwnedMemorySize(ownedSize);
         }
 
         public boolean getLLBit() {
@@ -830,6 +845,10 @@ public class VirtualMachine {
                     return (byte)(this.ownedMemory[address >>> 2]);
                 }
             }
+        }
+
+        public int ownedLen() {
+            return this.ownedMemory.length << 2;
         }
     
     }

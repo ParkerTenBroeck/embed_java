@@ -9,3 +9,8 @@ emballoc = "*"
 #wee_alloc = { version = "*", features = ["static_array_backend"]}
 macros = { version = "*", path = "../macros"}
 lazy_static = { version = "*", features = ["spin_no_std"]}
+libm = "*"
+
+[dependencies.num-traits]
+version = "0.2"
+default-features = false

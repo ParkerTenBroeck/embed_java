@@ -5,17 +5,32 @@ core::arch::global_asm!(
     // so uhhh no :)
     ".section .text.start",
     ".globl _start",
+    ".type _start, %function",
     "_start:",
+    
+    // stack (owned memory) starts at 0x80000000 and extends an unspecified ammount 
+    "li $sp, 0x80000000",
+    // querry the system to see how long (in bytes) the owned memory of this thread is
+    "syscall {get_stack_size}",
+    // the start of the stack is the end of our owned memory
+    "add $sp, $sp, $2",
+    
+    // initialize gp and fp registers
     "la $gp, _gp",
-    "la $sp, _sp ",
     "move $fp, $sp",
+
+    // stack frame should start with return address 0xFFFFFFFF (I think)
     "la $ra, 0xFFFFFFFF",
+    
+    // jump to main (really this should be a j instruction but just incase main returns its jal)
     "jal main",
+    
+    // loop and constantly syscall 0 (should probably be a breakpoint)
     "1:",
     "syscall 0",
     "b 1b",
+    get_stack_size = const {crate::arch::GET_OWNED_MEMORY_LENGTH}
 );
-
 
 #[inline(always)]
 /// # Safety

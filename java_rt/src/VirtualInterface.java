@@ -552,8 +552,9 @@ public class VirtualInterface implements VirtualMachine.VirtualInterface {
             case 1000:
                 int start_pc = emu.registers[4];
                 int arg_r4_p = emu.registers[5];
-                int stack_start = emu.registers[6];
-                var vm = emu.createAccociatedVMState();
+                int stack_size = emu.registers[6];
+                int stack_start = stack_size + 0x80000000;
+                VirtualMachine.VirtualMachineThreadState vm = emu.createAccociatedVMStateWithOwnedMemorySize(stack_size);
                 vm.pc = start_pc;
                 vm.registers[4] = arg_r4_p;
                 vm.registers[31] = 0xFFFFFFFF;
@@ -577,6 +578,16 @@ public class VirtualInterface implements VirtualMachine.VirtualInterface {
             case 1001:
                 System.exit(emu.registers[4]);
                 break;
+            case 1002:
+                emu.registers[2] = Runtime.getRuntime().availableProcessors();
+                break;
+            case 1003:
+                emu.registers[2] = emu.ownedLen();
+                break;
+            case 1004:
+                emu.registers[2] = emu.sharedMemory.length >> 2;
+                break;
+
             default:
                 throw new RuntimeException("Invalid System Call: " + call_id);
         }

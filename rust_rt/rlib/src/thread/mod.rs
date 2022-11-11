@@ -2,7 +2,7 @@ use core::{fmt::Display, num::NonZeroU32, time::Duration, cell::UnsafeCell};
 
 use alloc::sync::Arc;
 
-use crate::arch::START_NEW_THREAD;
+use crate::arch::{START_NEW_THREAD, syscall_v_s, GET_JVM_LOGICAL_PROCESSORS};
 
 #[cfg(feature = "alloc")]
 extern crate alloc;
@@ -10,6 +10,16 @@ extern crate alloc;
 #[cfg(feature = "alloc")]
 use alloc::boxed::Box;
 
+
+
+pub fn available_parallelism() -> usize{
+    unsafe{
+        syscall_v_s::<GET_JVM_LOGICAL_PROCESSORS>() as usize
+    }
+}
+
+
+// ------------------- THREADS -----------------------------
 
 type Result<T> = crate::result::Result<T, &'static str>;
 
@@ -21,6 +31,8 @@ where
     F: Send + 'static,
     T: Send + 'static,
 {
+
+    let stack_size = 0x10000;
 
     let out_packet = Arc::new(Packet{
         result: UnsafeCell::new(None)
@@ -36,11 +48,11 @@ where
         drop(new_thread_packet);
     };
 
-    let main: Box<dyn FnOnce() + 'static + Send> = box main;
+    let main: Box<dyn FnOnce() + 'static /*+ Send*/> = box main;
     let p = Box::into_raw(box main);
 
     let p = p as *mut core::ffi::c_void;
-    let res = unsafe { create_thread(run_thread, p, core::ptr::from_exposed_addr_mut(0x80001000)) };
+    let res = unsafe { create_thread(run_thread, p, stack_size) };
 
     if let Err(err) = res {
         unsafe {
@@ -67,9 +79,9 @@ where
 pub unsafe fn create_thread( 
     main: extern "C" fn(*mut core::ffi::c_void) -> !,
     args: *mut core::ffi::c_void,
-    stack:  *mut core::ffi::c_void,
+    stack_size:  usize,
 ) -> Result<Thread> {
-    let res = crate::arch::syscall_sss_s::<START_NEW_THREAD>(main as u32, args as u32, stack as u32);
+    let res = crate::arch::syscall_sss_s::<START_NEW_THREAD>(main as u32, args as u32, stack_size as u32);
     if let Some(id) = NonZeroU32::new(res) {
         Ok(Thread { id })
     } else {

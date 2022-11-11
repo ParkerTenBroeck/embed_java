@@ -79,7 +79,7 @@ SECTIONS
     . = ALIGN(0x8);
 
 
-    _stack_start = 0x81000;
+    _stack_start = 0x80010000;
     _sp = _stack_start;
 
 
