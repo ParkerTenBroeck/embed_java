@@ -35,16 +35,9 @@ pub unsafe extern "C" fn fmodf(f1: f32, f2: f32) -> f32 {
 #[no_mangle]
 pub fn main() {
 
-    rlib::thread::spawn(||{
-        let mut game = asteroids::Game::new();
-
-        loop {
-            game.run_frame();
-        }    
-    });
-
     let mut threads = vec::Vec::new();
-    for i in 0..(rlib::thread::available_parallelism() - 1){
+    if false{
+        for i in 0..(rlib::thread::available_parallelism() - 1){
         let t = rlib::thread::spawn(move || {
             
             fn is_prime(n: u32) -> bool {
@@ -69,6 +62,15 @@ pub fn main() {
         });
         threads.push(t.unwrap());
     }
+    }
+
+
+    let mut game = asteroids::Game::new();
+
+    loop {
+        game.run_frame();
+    }   
+
     for t in threads{
         let res = t.join().unwrap();
         println!("thread returned {:?}", res);

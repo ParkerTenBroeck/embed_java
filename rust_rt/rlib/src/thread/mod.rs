@@ -54,6 +54,7 @@ where
     let p = p as *mut core::ffi::c_void;
     let res = unsafe { create_thread(run_thread, p, stack_size) };
 
+    // the thread was NEVER created
     if let Err(err) = res {
         unsafe {
             //drop if thread isnt created
@@ -119,7 +120,6 @@ impl<T> JoinHandle<T>{
 }
 
 pub struct Thread{
-
     id: NonZeroU32,
 }
 
