@@ -1,4 +1,3 @@
-
 //Basic mips stuff
 
 /// Does not take reguments nor return anything
@@ -28,7 +27,7 @@ pub const PRINT_C_STRING: u32 = 4;
 pub const PRINT_CHAR: u32 = 5;
 
 /// Print a string to stdout
-/// 
+///
 /// Register 4: ptr to string
 /// Register 5: length of string
 pub const PRINT_STR: u32 = 6;
@@ -333,32 +332,31 @@ pub const IS_KEY_PRESSED: u32 = 401;
 /// Register 3: height of the screen in pixels
 pub const SCREEN_WIDTH_HEIGHT: u32 = 402;
 
-
 /// Start a new thread
-/// 
+///
 /// Register 4: ptr to start fn 'extern "C" fn start(args: *mut core::ffi::c_void) -> !'
 /// Register 5: ptr to arguments
 /// Register 6: length of stack (will be rounded up to the next 0x8 boundry)
-/// 
+///
 /// Register 2: 0 if the operation failed or The ID of the newly created thread
 pub const START_NEW_THREAD: u32 = 1000;
 
 /// Exits the whole program (like the entire JVM too)
-/// 
+///
 /// Register 4: Exit code
 pub const PROGRAM_EXIT: u32 = 1001;
 
 /// Gets the number of logical processors using JVMs  Runtime.getRuntime().availableProcessors()
-/// 
+///
 /// Register 2: The integer returned by the java querry
 pub const GET_JVM_LOGICAL_PROCESSORS: u32 = 1002;
 
 /// Gets the length of this threads owned memory
-/// 
+///
 /// Register 2: length of owned memory in bytes
 pub const GET_OWNED_MEMORY_LENGTH: u32 = 1003;
 
 /// Gets the length of this processes shared memory
-/// 
+///
 /// Register 2: length of shared memory in bytes
 pub const GET_SHARED_MEMORY_LENGTH: u32 = 1004;

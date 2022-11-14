@@ -126,7 +126,7 @@ pub type ObjectArrayRef<T> = ObjectRef<ObjectArray<T>>;
 //     }
 // }
 
-impl<T> Into<ObjectArrayRef<T>> for Vec<ObjectRef<T>>{
+impl<T> Into<ObjectArrayRef<T>> for Vec<ObjectRef<T>> {
     fn into(self) -> ObjectArrayRef<T> {
         ObjectArrayRef::from_vec(self)
     }

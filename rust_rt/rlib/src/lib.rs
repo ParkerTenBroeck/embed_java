@@ -21,10 +21,9 @@ compile_error!("NOT BIG ENDIAN");
 pub mod brock;
 pub mod nji;
 
-pub mod rt;
 pub mod arch;
 pub mod io;
-
+pub mod rt;
 
 pub mod process;
 pub mod sync;
@@ -36,8 +35,7 @@ pub use core::*;
 extern crate alloc;
 
 #[cfg(feature = "alloc")]
-pub use alloc::*; 
-
+pub use alloc::*;
 
 pub mod macros;
 pub use macros::*;

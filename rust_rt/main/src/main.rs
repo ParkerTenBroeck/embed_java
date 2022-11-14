@@ -5,7 +5,7 @@
 #![feature(default_alloc_error_handler)]
 
 pub mod alloc;
-use core::{time::Duration, fmt::Write};
+use core::{fmt::Write, time::Duration};
 pub mod asteroids;
 
 use rlib::nji::{
@@ -14,7 +14,6 @@ use rlib::nji::{
     primitives::{JBooleanRef, JCharRef, JDoubleRef, JIntRef, JLongRef, JStringRef},
 };
 pub use rlib::*;
-
 
 #[no_mangle]
 /// # Safety
@@ -30,56 +29,48 @@ pub unsafe extern "C" fn fmodf(f1: f32, f2: f32) -> f32 {
     libm::fmodf(f1, f2)
 }
 
-
-
 #[no_mangle]
 pub fn main() {
-
     let mut threads = vec::Vec::new();
-    if false{
-        for i in 0..(rlib::thread::available_parallelism() - 1){
-        let t = rlib::thread::spawn(move || {
-            
-            fn is_prime(n: u32) -> bool {
-                if n <= 1 {
-                    return false;
+    if false {
+        for i in 0..(rlib::thread::available_parallelism() - 1) {
+            let t = rlib::thread::spawn(move || {
+                fn is_prime(n: u32) -> bool {
+                    if n <= 1 {
+                        return false;
+                    }
+                    for a in 2..n {
+                        if n % a == 0 {
+                            return false; // if it is not the last statement you need to use `return`
+                        }
+                    }
+                    true // last value to return
                 }
-                for a in 2..n {
-                    if n % a == 0 {
-                        return false; // if it is not the last statement you need to use `return`
+
+                for n in 0..200000 {
+                    if is_prime(n) {
+                        println!("Thread: {i} -> {n} is prime");
                     }
                 }
-                true // last value to return
-            }
-            
-            
-            for n in 0..200000{
-                if is_prime(n){
-                    println!("Thread: {i} -> {n} is prime");
-                }
-            }
-            (i, i + 44)
-        });
-        threads.push(t.unwrap());
+                (i, i + 44)
+            });
+            threads.push(t.unwrap());
+        }
     }
-    }
-
 
     let mut game = asteroids::Game::new();
 
     loop {
         game.run_frame();
-    }   
+    }
 
-    for t in threads{
+    for t in threads {
         let res = t.join().unwrap();
         println!("thread returned {:?}", res);
     }
 
     rlib::arch::halt();
     // rlib::process::exit(0);
-
-
 
     let mut vec = alloc::vec::Vec::new();
     vec.push(JIntRef::new(54).to_obj_ref());

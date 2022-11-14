@@ -1,6 +1,5 @@
 use spin::RelaxStrategy;
 
-
 pub type Mutex<T> = spin::mutex::Mutex<T, VmRelax>;
 pub type MutexGuard<'a, T> = spin::mutex::MutexGuard<'a, T>;
 
@@ -19,10 +18,9 @@ pub type BarrierWaitResult = spin::barrier::BarrierWaitResult;
 
 pub struct VmRelax;
 
-impl RelaxStrategy for VmRelax{
+impl RelaxStrategy for VmRelax {
     #[inline(always)]
     fn relax() {
         crate::arch::sleep_ms(1);
     }
 }
-

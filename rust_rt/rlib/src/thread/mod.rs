@@ -1,8 +1,8 @@
-use core::{fmt::Display, num::NonZeroU32, time::Duration, cell::UnsafeCell};
+use core::{cell::UnsafeCell, fmt::Display, num::NonZeroU32, time::Duration};
 
 use alloc::sync::Arc;
 
-use crate::arch::{START_NEW_THREAD, syscall_v_s, GET_JVM_LOGICAL_PROCESSORS};
+use crate::arch::{syscall_v_s, GET_JVM_LOGICAL_PROCESSORS, START_NEW_THREAD};
 
 #[cfg(feature = "alloc")]
 extern crate alloc;
@@ -10,19 +10,13 @@ extern crate alloc;
 #[cfg(feature = "alloc")]
 use alloc::boxed::Box;
 
-
-
-pub fn available_parallelism() -> usize{
-    unsafe{
-        syscall_v_s::<GET_JVM_LOGICAL_PROCESSORS>() as usize
-    }
+pub fn available_parallelism() -> usize {
+    unsafe { syscall_v_s::<GET_JVM_LOGICAL_PROCESSORS>() as usize }
 }
-
 
 // ------------------- THREADS -----------------------------
 
 type Result<T> = crate::result::Result<T, &'static str>;
-
 
 #[cfg(feature = "alloc")]
 pub fn spawn<F, T>(f: F) -> Result<JoinHandle<T>>
@@ -31,20 +25,17 @@ where
     F: Send + 'static,
     T: Send + 'static,
 {
-
     let stack_size = 0x10000;
 
-    let out_packet = Arc::new(Packet{
-        result: UnsafeCell::new(None)
+    let out_packet = Arc::new(Packet {
+        result: UnsafeCell::new(None),
     });
 
     let new_thread_packet = out_packet.clone();
-    
+
     let main = move || {
         let res = f();
-        unsafe{
-            *new_thread_packet.result.get() = Some(Ok(res))
-        }
+        unsafe { *new_thread_packet.result.get() = Some(Ok(res)) }
         drop(new_thread_packet);
     };
 
@@ -61,13 +52,12 @@ where
             let _ = Box::from_raw(p);
         }
         return Err(err);
-    }else{
-        return Ok(JoinHandle{
+    } else {
+        return Ok(JoinHandle {
             thread: res.unwrap(),
             packet: out_packet,
         });
     }
-    
 
     extern "C" fn run_thread(main: *mut core::ffi::c_void) -> ! {
         unsafe {
@@ -77,12 +67,13 @@ where
     }
 }
 
-pub unsafe fn create_thread( 
+pub unsafe fn create_thread(
     main: extern "C" fn(*mut core::ffi::c_void) -> !,
     args: *mut core::ffi::c_void,
-    stack_size:  usize,
+    stack_size: usize,
 ) -> Result<Thread> {
-    let res = crate::arch::syscall_sss_s::<START_NEW_THREAD>(main as u32, args as u32, stack_size as u32);
+    let res =
+        crate::arch::syscall_sss_s::<START_NEW_THREAD>(main as u32, args as u32, stack_size as u32);
     if let Some(id) = NonZeroU32::new(res) {
         Ok(Thread { id })
     } else {
@@ -90,22 +81,22 @@ pub unsafe fn create_thread(
     }
 }
 
-struct Packet<T>{
+struct Packet<T> {
     result: UnsafeCell<Option<Result<T>>>,
 }
 
 pub struct JoinHandle<T> {
     thread: Thread,
-    packet: Arc<Packet<T>>
+    packet: Arc<Packet<T>>,
 }
 
-impl<T> JoinHandle<T>{
-    pub fn thread(&self) -> &Thread{
+impl<T> JoinHandle<T> {
+    pub fn thread(&self) -> &Thread {
         &self.thread
     }
 
-    pub fn join(mut self) -> Result<T>{
-        while !self.is_finished(){
+    pub fn join(mut self) -> Result<T> {
+        while !self.is_finished() {
             //TODO ISK ASDLKASLKJ
             crate::arch::sleep_ms(1);
         }
@@ -113,13 +104,13 @@ impl<T> JoinHandle<T>{
         res.result.get_mut().take().unwrap()
     }
 
-    pub fn is_finished(&self) -> bool{
+    pub fn is_finished(&self) -> bool {
         // this is like high key smart but I stole it from the rust std :)
         Arc::strong_count(&self.packet) == 1
     }
 }
 
-pub struct Thread{
+pub struct Thread {
     id: NonZeroU32,
 }
 

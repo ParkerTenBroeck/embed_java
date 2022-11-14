@@ -1,7 +1,6 @@
 extern crate alloc;
 pub use alloc::*;
 
-
 #[global_allocator]
 static ALLOCATOR: emballoc::Allocator<0x50000> = emballoc::Allocator::new();
 

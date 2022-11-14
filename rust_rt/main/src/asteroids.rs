@@ -5,45 +5,46 @@ use core::ops::Sub;
 use alloc::boxed::Box;
 use alloc::format;
 use alloc::vec::Vec;
+use num_traits::Zero;
 use rlib::io::screen::ScreeenPoint;
 use rlib::io::screen::Screen;
 use rlib::io::screen::ScreenCommand;
-use num_traits::Zero;
 
 use crate::asteroids::util::*;
 
-
 #[derive(Default, Clone, Copy)]
-struct FrameInfo{
+struct FrameInfo {
     time_nano: u64,
     instructions_ran: u64,
 }
 
-struct RollingTracker{
+struct RollingTracker {
     pos: usize,
-    frames: [FrameInfo; 256]
+    frames: [FrameInfo; 256],
 }
 
-impl RollingTracker{
-    
-    pub fn new() -> Self{
-            Self { pos: 0, frames: [Default::default(); 256] }
+impl RollingTracker {
+    pub fn new() -> Self {
+        Self {
+            pos: 0,
+            frames: [Default::default(); 256],
+        }
     }
 
-    pub fn average_frame_time(&self) -> f32{
+    pub fn average_frame_time(&self) -> f32 {
         let now = self.frames[self.pos];
         let oldest = self.frames[(self.pos as isize).sub(1) as usize & 0xFF];
         (oldest.time_nano.wrapping_sub(now.time_nano)) as f32 / 256.0 / 1000000000.0
     }
 
-    pub fn average_instructions_per_frame(&self) -> f32{
+    pub fn average_instructions_per_frame(&self) -> f32 {
         let now = self.frames[self.pos];
         let oldest = self.frames[(self.pos as isize).sub(1) as usize & 0xFF];
         (oldest.instructions_ran.wrapping_sub(now.instructions_ran)) as f32 / 256.0
     }
 
-    pub fn new_frame(&mut self, time_mill: u64, instructions_ran: u64){
-        self.frames[self.pos] = FrameInfo{
+    pub fn new_frame(&mut self, time_mill: u64, instructions_ran: u64) {
+        self.frames[self.pos] = FrameInfo {
             time_nano: time_mill,
             instructions_ran,
         };
@@ -51,7 +52,6 @@ impl RollingTracker{
         self.pos &= 0xFF;
     }
 }
-
 
 pub struct Game {
     screen: Screen,
@@ -106,12 +106,13 @@ impl Game {
         self.debug_str += 1;
         self.screen
             .push_command(ScreenCommand::SetColor([255, 255, 0, 255]));
-        self.screen
-            .push_command(ScreenCommand::Text(str, (0i16, self.debug_str as i16 * 15).into()));
+        self.screen.push_command(ScreenCommand::Text(
+            str,
+            (0i16, self.debug_str as i16 * 15).into(),
+        ));
     }
 
     pub fn run_frame(&mut self) {
-
         let instructions_ran = rlib::arch::get_instructions_ran();
         let now = rlib::arch::current_time_nanos();
         self.tracker.new_frame(now, instructions_ran);
@@ -131,10 +132,8 @@ impl Game {
             self.spawn_asteroids();
         }
 
-        if rlib::arch::is_key_pressed('q'){
-            while rlib::arch::is_key_pressed('q'){
-
-            }
+        if rlib::arch::is_key_pressed('q') {
+            while rlib::arch::is_key_pressed('q') {}
             self.show_debug = !self.show_debug;
         }
         self.screen
@@ -185,7 +184,8 @@ impl Game {
             let mut tmp = bullet.pos;
             tmp.x -= bullet.vel.x * d_time;
             tmp.y -= bullet.vel.y * d_time;
-            self.screen.push_command(ScreenCommand::Line(bullet.pos.into(), tmp.into()));
+            self.screen
+                .push_command(ScreenCommand::Line(bullet.pos.into(), tmp.into()));
             bullet.life > 0.0
         });
 
@@ -195,16 +195,19 @@ impl Game {
             particle.pos.x += particle.vel.x * d_time;
             particle.pos.y += particle.vel.y * d_time;
             particle.life -= d_time;
-            if let Some(c) = &particle.color_fn{
-                    self.screen
-                .push_command(ScreenCommand::SetColor(c(particle)));
+            if let Some(c) = &particle.color_fn {
+                self.screen
+                    .push_command(ScreenCommand::SetColor(c(particle)));
             }
             if let Some(ls) = particle.ls.as_mut() {
                 ls.0.x += particle.vel.x * d_time;
                 ls.0.y += particle.vel.y * d_time;
                 //ls.0.fit_to_screen(&mut self.screen);
                 ls.1 += ls.2 * d_time;
-                let mut center = Vector::new((ls.0.x + particle.pos.x) / 2.0, (ls.0.y + particle.pos.y) / 2.0);
+                let mut center = Vector::new(
+                    (ls.0.x + particle.pos.x) / 2.0,
+                    (ls.0.y + particle.pos.y) / 2.0,
+                );
 
                 let p1 = Vector::new(ls.0.x - center.x, ls.0.y - center.y);
                 let p2 = Vector::new(particle.pos.x - center.x, particle.pos.y - center.y);
@@ -218,14 +221,12 @@ impl Game {
                     .push_command_with_wrap(ScreenCommand::Line(t[0], t[1]));
             } else {
                 particle.pos.fit_to_screen(&mut self.screen);
-                self.screen.push_command(ScreenCommand::Pixel(
-                    particle.pos.into()
-                ));
-            }
-            if particle.color_fn.is_some(){
                 self.screen
-            .push_command(ScreenCommand::SetColor([255, 255, 255, 255]));
-        
+                    .push_command(ScreenCommand::Pixel(particle.pos.into()));
+            }
+            if particle.color_fn.is_some() {
+                self.screen
+                    .push_command(ScreenCommand::SetColor([255, 255, 255, 255]));
             }
             particle.life > 0.0
         });
@@ -246,10 +247,8 @@ impl Game {
                 self.screen
                     .push_command(ScreenCommand::SetColor([0, 0, 255, 255]));
                 self.screen.push_command_with_wrap(ScreenCommand::Oval(
-                    (x,
-                    y,).into(),
-                    (asteroid.max_rad as i16,
-                    asteroid.max_rad as i16,).into()
+                    (x, y).into(),
+                    (asteroid.max_rad as i16, asteroid.max_rad as i16).into(),
                 ));
                 self.screen
                     .push_command(ScreenCommand::SetColor([255, 255, 255, 255]));
@@ -263,8 +262,7 @@ impl Game {
                 .push_command(ScreenCommand::SetColor([0, 0, 255, 255]));
             self.screen.push_command_with_wrap(ScreenCommand::Oval(
                 self.ship.pos.into(),
-                (SHIP_MAX_RADIUS as i16,
-                SHIP_MAX_RADIUS as i16).into()
+                (SHIP_MAX_RADIUS as i16, SHIP_MAX_RADIUS as i16).into(),
             ));
         }
 
@@ -315,41 +313,72 @@ impl Game {
             rlib::process::exit(0);
         }
 
-
-        let spawn_new = if let Some(cool_down) = self.new_level_cooldown.as_mut(){
+        let spawn_new = if let Some(cool_down) = self.new_level_cooldown.as_mut() {
             *cool_down -= d_time;
             *cool_down <= 0.0
-        }else{
+        } else {
             false
         };
-        if spawn_new{
+        if spawn_new {
             self.spawn_asteroids();
             self.new_level_cooldown = None;
         }
-        if self.asteroids.is_empty() && self.new_level_cooldown.is_none(){
+        if self.asteroids.is_empty() && self.new_level_cooldown.is_none() {
             self.new_level_cooldown = Some(2.0);
             self.level += 1;
         }
 
         self.screen
             .push_command(ScreenCommand::SetColor([255, 255, 255, 255]));
-        
-        let str = format!("score: {}", self.score);
-        self.screen.push_command(ScreenCommand::Text(&str, (self.screen.get_width() / 2 - str.len() as i16 * 5 / 2, 10i16).into()));
 
+        let str = format!("score: {}", self.score);
+        self.screen.push_command(ScreenCommand::Text(
+            &str,
+            (
+                self.screen.get_width() / 2 - str.len() as i16 * 5 / 2,
+                10i16,
+            )
+                .into(),
+        ));
 
         let str = format!("level: {}", self.level + 1);
-        self.screen.push_command(ScreenCommand::Text(&str, (self.screen.get_width() / 2 - str.len() as i16 * 5 / 2, 25i16).into()));
-
+        self.screen.push_command(ScreenCommand::Text(
+            &str,
+            (
+                self.screen.get_width() / 2 - str.len() as i16 * 5 / 2,
+                25i16,
+            )
+                .into(),
+        ));
 
         let str = format!("lives: {}", self.lives);
-        self.screen.push_command(ScreenCommand::Text(&str, (self.screen.get_width() / 2 - str.len() as i16 * 5 / 2, 40i16).into()));
+        self.screen.push_command(ScreenCommand::Text(
+            &str,
+            (
+                self.screen.get_width() / 2 - str.len() as i16 * 5 / 2,
+                40i16,
+            )
+                .into(),
+        ));
 
         let str = format!("fps: {:.0}", 1.0 / self.tracker.average_frame_time());
-        self.screen.push_command(ScreenCommand::Text(&str, (self.screen.get_width() / 2 - str.len() as i16 * 5 / 2, 55i16).into()));
+        self.screen.push_command(ScreenCommand::Text(
+            &str,
+            (
+                self.screen.get_width() / 2 - str.len() as i16 * 5 / 2,
+                55i16,
+            )
+                .into(),
+        ));
         let str = format!("ipf: {:.0}", self.tracker.average_instructions_per_frame());
-        self.screen.push_command(ScreenCommand::Text(&str, (self.screen.get_width() / 2 - str.len() as i16 * 5 / 2, 70i16).into()));
-
+        self.screen.push_command(ScreenCommand::Text(
+            &str,
+            (
+                self.screen.get_width() / 2 - str.len() as i16 * 5 / 2,
+                70i16,
+            )
+                .into(),
+        ));
 
         if self.show_debug {
             self.draw_debug_str(&format!("particles: {:.2}", self.particles.len()));
@@ -373,22 +402,18 @@ impl Game {
         }
     }
 
-    fn spawn_asteroids(&mut self){
+    fn spawn_asteroids(&mut self) {
         while self.asteroids.len() < (self.level + 5) as usize {
             let x = rlib::arch::rand_range(0, self.screen.get_width() as i32) as f32;
             let y = rlib::arch::rand_range(0, self.screen.get_height() as i32) as f32;
-            let asteroid = Asteroid::new(
-                Vector::new(x, y),
-                3,
-            );
+            let asteroid = Asteroid::new(Vector::new(x, y), 3);
             let d_x = asteroid.pos.x - self.ship.pos.x;
             let d_y = asteroid.pos.y - self.ship.pos.y;
             let dis = d_x * d_x + d_y * d_y;
-            if dis > 10000.0{
+            if dis > 10000.0 {
                 self.asteroids.push(asteroid);
             }
         }
-
     }
 }
 
@@ -402,7 +427,7 @@ struct Ship {
     angle: f32,
     invincible: f32,
     cant_shoot: f32,
-    god: bool
+    god: bool,
 }
 
 enum ShipCollision {
@@ -431,7 +456,6 @@ const SHIP_FIRE_OUTER: [Vector; 3] = [
 ];
 
 impl Ship {
-
     pub fn update(game: &mut Game, d_time: f32) -> ShipCollision {
         if game.show_debug {
             game.draw_debug_str(&format!("acc_x: {:.2}", game.ship.acc.x));
@@ -485,7 +509,7 @@ impl Ship {
         if rlib::arch::is_key_pressed(' ') {
             if ship.cant_shoot == 0.0 {
                 let bullet = Bullet {
-                    pos:  d_points[0].into(),
+                    pos: d_points[0].into(),
                     vel: Vector {
                         x: cos * 350.0 + ship.vel.x,
                         y: sin * 350.0 + ship.vel.y,
@@ -493,9 +517,9 @@ impl Ship {
                     can_hurt_player: false,
                     life: 1.1,
                 };
-                if ship.god{
+                if ship.god {
                     //ship.cant_shoot = 0.003;
-                }else{
+                } else {
                     ship.cant_shoot = 0.4;
                 }
                 bullets.push(bullet);
@@ -524,9 +548,10 @@ impl Ship {
                 let mut p2 = calculate_screen_points(SHIP_FIRE_OUTER, sin, cos, ship.pos);
                 p2[1].x += rlib::arch::rand_range(-1, 1) as i16;
                 p2[1].y += rlib::arch::rand_range(-1, 1) as i16;
-                
+
                 for i in 0..(libm::ceilf(200.0 * d_time) as i32) {
-                    let mut particle = Particle::new_point(Vector::new(p1[1].x as f32, p1[1].y as f32));
+                    let mut particle =
+                        Particle::new_point(Vector::new(p1[1].x as f32, p1[1].y as f32));
                     particle.pos.x += i as f32 * cos;
                     particle.pos.y += i as f32 * sin;
                     particle.vel.x /= 2.0;
@@ -535,13 +560,11 @@ impl Ship {
                     let life = particle.life;
                     particle.vel.x += ship.vel.x + 260.0 * -cos;
                     particle.vel.y += ship.vel.y + 260.0 * -sin;
-                    particle.color_fn = Some(Box::new(move |particle|{
+                    particle.color_fn = Some(Box::new(move |particle| {
                         let life = (particle.life / life * 255.0) as u8;
-                        [life,life,life,255]
+                        [life, life, life, 255]
                     }));
                     particles.push(particle);
-                    
-
                 }
                 screen.push_command_with_wrap(ScreenCommand::PolygonLine(&p2));
             }
@@ -550,25 +573,21 @@ impl Ship {
             ship.acc.y = 0.0;
         }
 
-           
         {
             let dfc = 0.128 * 0.025;
 
             let full_s = ship.vel.x * ship.vel.x + ship.vel.y * ship.vel.y;
             let full = libm::sqrtf(full_s);
 
-            if !full.is_zero(){
-
+            if !full.is_zero() {
                 let xp = ship.vel.x / full;
                 let yp = ship.vel.y / full;
-    
+
                 //actual drag calculation
                 let tmp_ad = dfc * full_s;
                 ship.acc.x -= xp * tmp_ad;
                 ship.acc.y -= yp * tmp_ad;
-    
             }
-
 
             //idk what this is irl but it makes it feel better??
             {
@@ -578,19 +597,18 @@ impl Ship {
 
                     if abs_x < 0.5 {
                         ship.vel.x = 0.0;
-                    }else{
+                    } else {
                         ship.acc.x -= ship.vel.x / full * fony_balony_drag_cof;
                     }
 
                     let abs_y = abs(ship.vel.y);
                     if abs_y < 0.5 {
                         ship.vel.y = 0.0;
-                    }else{
+                    } else {
                         ship.acc.y -= ship.vel.y / full * fony_balony_drag_cof;
                     }
                 }
             }
-
 
             let half_d_time = d_time / 2.0;
 
@@ -610,7 +628,7 @@ impl Ship {
             ship.invincible = 0.0;
         }
 
-        if !invincible && !ship.god{
+        if !invincible && !ship.god {
             let t = 'thing: {
                 for (i, asteroid) in asteroids.iter_mut().enumerate() {
                     let tmpx = asteroid.pos.x - ship.pos.x;
@@ -717,7 +735,7 @@ struct Bullet {
 //------------------------------------------------------------------------------------------
 
 mod util {
-    use rlib::io::screen::{Screen, ScreeenPoint};
+    use rlib::io::screen::{ScreeenPoint, Screen};
 
     #[derive(Debug, Default, Clone, Copy)]
     pub struct Vector {
@@ -731,18 +749,23 @@ mod util {
         }
     }
 
-    impl From<Vector> for ScreeenPoint{
+    impl From<Vector> for ScreeenPoint {
         fn from(vec: Vector) -> Self {
-            Self { x: vec.x as i16, y: vec.y as i16 }
+            Self {
+                x: vec.x as i16,
+                y: vec.y as i16,
+            }
         }
     }
 
-    impl From<ScreeenPoint> for Vector{
+    impl From<ScreeenPoint> for Vector {
         fn from(vec: ScreeenPoint) -> Self {
-            Self { x: vec.x as f32, y: vec.y as f32 }
+            Self {
+                x: vec.x as f32,
+                y: vec.y as f32,
+            }
         }
     }
-
 
     impl Vector {
         pub fn fit_to_screen(&mut self, screen: &mut Screen) {
@@ -821,7 +844,7 @@ struct Particle {
     vel: Vector,
     ls: Option<(Vector, f32, f32)>,
     life: f32,
-    color_fn: Option<Box<dyn Fn(&Self) -> [u8; 4]>>
+    color_fn: Option<Box<dyn Fn(&Self) -> [u8; 4]>>,
 }
 
 impl Particle {
@@ -837,11 +860,7 @@ impl Particle {
 
     pub fn new_line(pos1: Vector, pos2: Vector) -> Self {
         let mut tmp = Self::new_point(pos1);
-        tmp.ls = Some((
-            pos2,
-            0.0,
-            rlib::arch::rand_range(-170, 170) as f32 / 180.0,
-        ));
+        tmp.ls = Some((pos2, 0.0, rlib::arch::rand_range(-170, 170) as f32 / 180.0));
         tmp.vel.x /= 5.0;
         tmp.vel.y /= 5.0;
         tmp

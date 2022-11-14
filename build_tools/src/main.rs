@@ -3,7 +3,7 @@ use std::{ffi::OsStr, io::Write, path::PathBuf, process::Command, str::FromStr};
 use walkdir::WalkDir;
 
 fn main() {
-    let mut args = std::env::args().skip(1).peekable(); // skip executable name
+    let args = std::env::args().skip(1).peekable(); // skip executable name
 
     let mut run = false;
     let mut build = false;
@@ -11,7 +11,7 @@ fn main() {
     // let mut release = false;
     let mut unreconized = Vec::new();
 
-    while let Some(string) = args.next() {
+    for string in args {
         match string.as_str().trim() {
             "run" => {
                 run = true;
@@ -32,7 +32,7 @@ fn main() {
     if clean {
         let mut run_cmd = Command::new("cargo");
         run_cmd.arg("clean");
-        let _ = assert!(run_cmd.status().unwrap().success());
+        assert!(run_cmd.status().unwrap().success());
 
         let mut path = workspace_path();
         path.push("java_rt");
@@ -56,13 +56,13 @@ fn main() {
             run_cmd.current_dir(path.as_path());
             run_cmd.arg("-p");
             run_cmd.arg("build");
-            let _ = assert!(run_cmd.status().unwrap().success());
+            assert!(run_cmd.status().unwrap().success());
 
             let mut run_cmd = Command::new("mkdir");
             run_cmd.current_dir(path.as_path());
             run_cmd.arg("-p");
             run_cmd.arg("out");
-            let _ = assert!(run_cmd.status().unwrap().success());
+            assert!(run_cmd.status().unwrap().success());
 
             let mut source = path.clone();
             source.push("src");
@@ -80,7 +80,7 @@ fn main() {
             run_cmd.arg("./lib/*.jar");
             run_cmd.arg("-d");
             run_cmd.arg("./build");
-            let _ = assert!(run_cmd.status().unwrap().success());
+            assert!(run_cmd.status().unwrap().success());
 
             let files: Vec<PathBuf> = walkdir::WalkDir::new(im_source)
                 .follow_links(true)
@@ -137,7 +137,7 @@ fn main() {
                 }
 
                 run_cmd.args(files);
-                let _ = assert!(run_cmd.status().unwrap().success());
+                assert!(run_cmd.status().unwrap().success());
             }
 
             //remove the stupid stuff from the brock jar
@@ -188,7 +188,7 @@ fn main() {
                 .map(|e| e.into_path().strip_prefix(im_dest).unwrap().to_owned())
                 .collect();
             run_cmd.args(&files);
-            let _ = assert!(run_cmd.status().unwrap().success());
+            assert!(run_cmd.status().unwrap().success());
         }
     }
 
@@ -201,7 +201,7 @@ fn main() {
         run_cmd.arg("-jar");
         run_cmd.arg("JavaRT.jar");
 
-        let _ = assert!(run_cmd.status().unwrap().success());
+        assert!(run_cmd.status().unwrap().success());
     }
 }
 
@@ -237,7 +237,7 @@ pub fn build_vm_binary(name: &str) {
         .arg("-Zbuild-std=core,compiler_builtins,alloc")
         .arg("-Zbuild-std-features=compiler-builtins-mem");
 
-    let _ = assert!(run_cmd.status().unwrap().success());
+    assert!(run_cmd.status().unwrap().success());
 }
 
 pub fn create_raw_binary(name: &str) -> PathBuf {

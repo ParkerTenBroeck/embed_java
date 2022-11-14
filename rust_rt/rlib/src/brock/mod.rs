@@ -1,5 +1,5 @@
-use crate::nji::object::ObjectRef;
 use crate::arch::*;
+use crate::nji::object::ObjectRef;
 
 pub struct Turtle;
 pub type TurtleRef = ObjectRef<Turtle>;

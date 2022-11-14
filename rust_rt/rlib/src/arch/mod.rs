@@ -1,9 +1,7 @@
 mod call_ids;
 mod syscalls;
-pub use syscalls::*;
 pub use call_ids::*;
-
-
+pub use syscalls::*;
 
 #[inline(always)]
 pub fn halt() -> ! {
@@ -37,16 +35,12 @@ pub fn print_zero_term_str(str: &str) {
 
 #[inline(always)]
 pub fn print_str(str: &str) {
-    unsafe{
-        syscall_ss_v::<PRINT_STR>(str.as_ptr() as u32, str.len() as u32)
-    }
+    unsafe { syscall_ss_v::<PRINT_STR>(str.as_ptr() as u32, str.len() as u32) }
 }
 
 #[inline(always)]
 pub fn flush() {
-    unsafe{
-        syscall_v_v::<FLUSH_STDOUT>()
-    }
+    unsafe { syscall_v_v::<FLUSH_STDOUT>() }
 }
 
 #[inline(always)]
@@ -111,4 +105,3 @@ pub fn rand_range(min: i32, max: i32) -> i32 {
 // pub fn get_nanos() -> u64 {
 //     unsafe { syscall_0_2_s::<109>() }
 // }
-
