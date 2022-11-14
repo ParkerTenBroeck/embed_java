@@ -28,6 +28,8 @@ In addition you will need to have `mips-linux-gnu-ld` in your path.
 
 `$ cargo build_all` will build the rust program, generate a raw bin file, build all java files, package compiled java and raw bin file into a Jar file.
 
+the final Jar is placed under `./java_rt/out/JavaRT.jar`
+
 The generated Jar file is standalone and does not require any library's or files in its path.
 
 `$ cargo run_java` this will first call `build_all` and then run the generated Jar file
@@ -101,4 +103,4 @@ But if you do please credit me.
 
 ## License
 
-See LICENSE.txt for more information.
+See LICENSE for more information.
