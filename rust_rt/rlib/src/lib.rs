@@ -11,6 +11,9 @@
 #![feature(generic_const_exprs)]
 #![feature(negative_impls)]
 #![feature(box_syntax)]
+#![feature(unboxed_closures)]
+#![feature(fn_traits)]
+#![feature(tuple_trait)]
 
 #[cfg(not(target_arch = "mips"))]
 compile_error!("ONLY MIPS ARCHITECTURE SUPPORTED");

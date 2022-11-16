@@ -83,18 +83,22 @@ public class VirtualMachine {
         }
 
         public VirtualMachine.VirtualMachineThreadState createAccociatedVMState() {
-            return createNextVMThreadState();
+            VirtualMachineThreadState vm = createNextVMThreadState();
+            vm.sharedMemory = this.sharedMemory;
+            return vm;
         }
 
         public VirtualMachine.VirtualMachineThreadState createAccociatedVMStateWithOwnedMemorySize(int ownedSize) {
-            return createNextVMThreadStateWithOwnedMemorySize(ownedSize);
+            VirtualMachineThreadState vm = createNextVMThreadStateWithOwnedMemorySize(ownedSize);
+            vm.sharedMemory = this.sharedMemory;
+            return vm;
         }
 
         public boolean getLLBit() {
             return LLVal;
         }
     
-        public void run() throws Exception{
+        public void run() {
             try{
                 this.running = true;
                 int t;
@@ -716,7 +720,7 @@ public class VirtualMachine {
                 }catch (Exception ignore){
                 }
                 this.running = false;
-                throw e;
+                throw new RuntimeException(e);
             }
             System.out.println("Thread: " + this.threadId + " Exited");
         }
@@ -849,6 +853,16 @@ public class VirtualMachine {
 
         public int ownedLen() {
             return this.ownedMemory.length << 2;
+        }
+
+        public VirtualMachine.VirtualMachineThreadState createCallbackFromCurrentState() {
+            VirtualMachineThreadState vm = createAccociatedVMState();
+            vm.pc = this.registers[4];
+            vm.registers[4] = this.registers[5];
+            vm.registers[31] = 0xFFFFFFFF;
+            int stack_start = vm.ownedLen() + 0x80000000;
+            vm.registers[29] = stack_start;
+            return vm;
         }
     
     }

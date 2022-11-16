@@ -31,7 +31,8 @@ public class VirtualInterface implements VirtualMachine.VirtualInterface {
         this.rootFrame = rootFrame;
     }
 
-
+    // these methods can probably break under multithreading conditions so uh
+    // find a fix for them if they break something :)
     private int insert_object(Object obj){
         if (this.next_id == 0){
             this.next_id++;
@@ -54,6 +55,8 @@ public class VirtualInterface implements VirtualMachine.VirtualInterface {
         return objMap.get(id);
     }
 
+    // It is up to the virtual machine code to ensure that access to system calls is thread safe
+    // you have access to atomics in the VM so figure it out
     @Override
     public void system_call(VirtualMachine.VirtualMachineThreadState emu, int call_id) {
         switch (call_id){
@@ -549,7 +552,7 @@ public class VirtualInterface implements VirtualMachine.VirtualInterface {
                 break;
             
             // idk system interface or smtin
-            case 1000:
+            case 1000:{
                 int start_pc = emu.registers[4];
                 int arg_r4_p = emu.registers[5];
                 int stack_size = emu.registers[6];
@@ -560,20 +563,16 @@ public class VirtualInterface implements VirtualMachine.VirtualInterface {
                 vm.registers[31] = 0xFFFFFFFF;
                 vm.registers[29] = stack_start;
                 // default to shared memory (all)
-                vm.sharedMemory = emu.sharedMemory;
                 Thread t = new Thread(){
                     @Override
                     public void run() {
-                        try{
-                            vm.run();     
-                        }catch(Exception e){
-                            e.printStackTrace();
-                        }
+                        vm.run(); 
                     }
                 };
                 // return thread id of new thread to old thread
                 emu.registers[2] = vm.getThreadId();
                 t.start();
+            }
                 break;
             case 1001:
                 System.exit(emu.registers[4]);
@@ -586,6 +585,35 @@ public class VirtualInterface implements VirtualMachine.VirtualInterface {
                 break;
             case 1004:
                 emu.registers[2] = emu.sharedMemory.length >> 2;
+                break;
+            case 1020:{
+                VirtualMachine.VirtualMachineThreadState vm = emu.createCallbackFromCurrentState();
+                emu.registers[2] = this.insert_object(vm);
+                // Timer t = new Timer();
+                // t.schedule(new TimerTask() {
+                //     @Override
+                //     public void run() {
+                //         vm.run();
+                //     }
+                    
+                // }, call_id);
+            }
+            break;
+            case 1021:{
+                VirtualMachine.VirtualMachineThreadState vm = (VirtualMachine.VirtualMachineThreadState)this.get_object(emu.registers[4]);
+                vm.registers[5] = 0x11223344;
+                vm.registers[6] = 6;
+                //vm.registers[7] = 0x11223344;
+                vm.run();
+                // Timer t = new Timer();
+                // t.schedule(new TimerTask() {
+                //     @Override
+                //     public void run() {
+                //         vm.run();
+                //     }
+                    
+                // }, call_id);
+            }
                 break;
 
             default:
@@ -733,7 +761,7 @@ public class VirtualInterface implements VirtualMachine.VirtualInterface {
 
     @Override
     public void breakpoint(VirtualMachine.VirtualMachineThreadState emu, int call_id) {
-        throw new RuntimeException("bruh");
+        throw new RuntimeException("We don't got none of those fancy breakpoints here");
     }
 
 

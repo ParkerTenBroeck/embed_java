@@ -31,6 +31,15 @@ pub unsafe extern "C" fn fmodf(f1: f32, f2: f32) -> f32 {
 
 #[no_mangle]
 pub fn main() {
+
+    rlib::nji::callback::test();
+    if true{
+        return;
+    }
+
+
+
+
     let mut threads = vec::Vec::new();
     if false {
         for i in 0..(rlib::thread::available_parallelism() - 1) {
