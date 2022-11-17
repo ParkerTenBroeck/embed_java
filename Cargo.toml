@@ -7,3 +7,6 @@ members = [
 ]
 
 resolver = "2"
+
+[release]
+debug = true

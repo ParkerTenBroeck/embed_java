@@ -2,6 +2,7 @@ import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -37,6 +38,38 @@ public class VirtualMachine {
 
     public VirtualMachine.VirtualMachineThreadState createNextVMThreadStateWithOwnedMemorySize(int size) {
         return new VirtualMachineThreadState(this.nextThreadId(), size);
+    }
+
+    public static class Callback{
+
+        public static interface CallbackSetUp{
+            public void setup(VirtualMachineThreadState vmState);
+        }
+
+        public VirtualMachineThreadState vmt;
+        int ptr_rust_struct;
+        int trampoline_addr;
+        int standalone_return_addr;
+        volatile AtomicBoolean running = new AtomicBoolean(false);
+
+        public void run(CallbackSetUp setup){
+            while(running.compareAndExchange(false, true)) {}
+            if (setup != null){
+                setup.setup(this.vmt);
+            }
+            vmt.run();
+            this.reset();
+            running.compareAndExchange(true, false);
+        }
+
+        public void reset(){
+            vmt.reset();
+            vmt.pc = this.trampoline_addr;
+            vmt.registers[31] = this.standalone_return_addr;
+            vmt.registers[4] = this.ptr_rust_struct;
+            int stack_start = this.vmt.ownedLen() + 0x80000000;
+            vmt.registers[29] = stack_start;
+        }
     }
 
     public class VirtualMachineThreadState{
@@ -92,6 +125,17 @@ public class VirtualMachine {
             VirtualMachineThreadState vm = createNextVMThreadStateWithOwnedMemorySize(ownedSize);
             vm.sharedMemory = this.sharedMemory;
             return vm;
+        }
+
+        public VirtualMachine.Callback createCallbackFromCurrentState() {
+            VirtualMachineThreadState vmt = createAccociatedVMState();
+            Callback cb = new Callback();
+            cb.vmt = vmt;
+            cb.trampoline_addr = this.registers[4];
+            cb.standalone_return_addr = this.registers[5];
+            cb.ptr_rust_struct = this.registers[6];
+            cb.reset();
+            return cb;
         }
 
         public boolean getLLBit() {
@@ -853,16 +897,6 @@ public class VirtualMachine {
 
         public int ownedLen() {
             return this.ownedMemory.length << 2;
-        }
-
-        public VirtualMachine.VirtualMachineThreadState createCallbackFromCurrentState() {
-            VirtualMachineThreadState vm = createAccociatedVMState();
-            vm.pc = this.registers[4];
-            vm.registers[4] = this.registers[5];
-            vm.registers[31] = 0xFFFFFFFF;
-            int stack_start = vm.ownedLen() + 0x80000000;
-            vm.registers[29] = stack_start;
-            return vm;
         }
     
     }

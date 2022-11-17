@@ -1,84 +1,178 @@
-use crate::{arch::{syscall_ss_s, syscall_s_v}};
+use core::marker::PhantomData;
 
-use super::object::{ObjectRef, Object};
+use crate::arch::{syscall_s_v, syscall_sss_s, syscall_ds_v};
 
-
-#[repr(C)]
-struct FfiTuple<T: core::marker::Tuple>{
-    tup: T
-}
+use super::object::ObjectRef;
 
 #[repr(C)]
-struct Callback<F, Args>
+struct FfiTuple<T: core::marker::Tuple>(T);
+
+//--------------------------------------------------------
+
+impl<F, Args> ObjectRef<CallbackObj<F, Args>>
 where
-    F: FnOnce<Args> + Send + 'static,
+    F: Fn<Args> + Send + Sync + 'static,
     Args: core::marker::Tuple,
 {
-    call_fn: fn(Callback<F, Args>, FfiTuple<Args>),
+    pub fn call_rust(&self, args: Args) {
+        unimplemented!()
+    }
+}
+
+struct CallbackObj<F, Args>
+where
+    F: Fn<Args> + Send + Sync + 'static,
+    Args: core::marker::Tuple,
+{
+    _f: PhantomData<(F, Args)>,
+}
+
+struct Callback<F, Args>
+where
+    F: Fn<Args> + Send + 'static,
+    Args: core::marker::Tuple,
+{
     func: F,
+    _p: PhantomData<Args>,
 }
 
 impl<F, Args> Callback<F, Args>
 where
-    F: FnOnce<Args> + Send + 'static,
+    F: Fn<Args> + Send + Sync + 'static,
     Args: core::marker::Tuple,
 {
     pub fn new(func: F) -> Self {
         Self {
             func,
-            call_fn: Self::call,
+            _p: Default::default(),
         }
     }
 
-    pub fn call(self, args: FfiTuple<Args>) {
-        self.func.call_once(args.tup);
+    pub fn call(&self, args: Args) {
+        self.func.call(args);
     }
 
-    pub extern "C" fn trampoline(s: *mut Self, args: FfiTuple<Args>) -> !{
-        unsafe{
-            alloc::boxed::Box::from_raw(s).call(args);
-            crate::arch::halt()
+    extern "C" fn trampoline(s: *const Self, args: Args) {
+        unsafe {
+            s.as_ref().unwrap().call(args);
         }
     }
 
-    pub fn trampoline_ptr(&self) -> extern "C" fn(s: *mut Self, args: FfiTuple<Args>) -> !{
-        Self::trampoline
+    extern "C" fn trampoline_exit() -> ! {
+        crate::arch::halt()
+    }
+
+    pub fn into_jvm_obj(self) -> ObjectRef<CallbackObj<F, Args>> {
+        let tramp = Self::trampoline;
+        let tramp_exit = Self::trampoline_exit;
+
+        let boxed = alloc::boxed::Box::new(self);
+        let leaked = alloc::boxed::Box::into_raw(boxed);
+
+        unsafe {
+            let ret = syscall_sss_s::<1020>(tramp as u32, tramp_exit as u32, leaked as u32);
+            ObjectRef::from_id_bits(ret).expect("Returned Callback object was null")
+        }
     }
 
     pub unsafe fn raw_dog_callback(self) {
-        let tramp = self.trampoline_ptr();
-        let boxed = alloc::boxed::Box::new(self);
-        let leaked = alloc::boxed::Box::into_raw(boxed);
-        
-        let ret = syscall_ss_s::<1020>(tramp as u32, leaked as u32);
-        crate::println!("asdasdasd");
-        let callback:ObjectRef<Object> = ObjectRef::from_id_bits(ret).expect("Returned Callback object was null");
+        let callback = self.into_jvm_obj();
 
         crate::println!("{callback}");
         syscall_s_v::<1021>(callback.id_bits());
-        crate::println!("{callback}");
-        
+        drop(callback)
     }
 }
 
+// -------------------------------------------------------------------------------------------
+
+impl<F, Args> ObjectRef<CallbackMutObj<F, Args>>
+where
+    F: FnMut<Args> + Send + Sync + 'static,
+    Args: core::marker::Tuple,
+{
+    pub fn call_rust(&mut self, args: Args) {
+        unimplemented!()
+    }
+}
+
+struct CallbackMutObj<F, Args>
+where
+    F: FnMut<Args> + Send + Sync + 'static,
+    Args: core::marker::Tuple,
+{
+    _f: PhantomData<(F, Args)>,
+}
+
+#[repr(C)]
+struct CallbackMut<F, Args>
+where
+    F: FnMut<Args> + Send + 'static,
+    Args: core::marker::Tuple,
+{
+    func: crate::sync::Mutex<F>,
+    _p: PhantomData<Args>,
+}
+
+impl<F, Args> CallbackMut<F, Args>
+where
+    F: FnMut<Args> + Send + Sync + 'static,
+    Args: core::marker::Tuple,
+{
+    pub fn new(func: F) -> Self {
+        Self {
+            func: crate::sync::Mutex::new(func),
+            _p: Default::default(),
+        }
+    }
+
+    pub fn call(&self, args: Args) {
+        self.func.lock().call_mut(args);
+    }
+
+    extern "C" fn trampoline(s: *const Self, args: Args) {
+        unsafe {
+            s.as_ref().unwrap().call(args);
+        }
+    }
+
+    extern "C" fn trampoline_exit() -> ! {
+        crate::arch::halt()
+    }
+
+    pub fn into_jvm_obj(self) -> ObjectRef<CallbackMutObj<F, Args>> {
+        let tramp = Self::trampoline;
+        let tramp_exit = Self::trampoline_exit;
+
+        let boxed = alloc::boxed::Box::new(self);
+        let leaked = alloc::boxed::Box::into_raw(boxed);
+
+        unsafe {
+            let ret = syscall_sss_s::<1020>(tramp as u32, tramp_exit as u32, leaked as u32);
+            ObjectRef::from_id_bits(ret).expect("Returned Callback object was null")
+        }
+    }
+
+    pub unsafe fn raw_dog_callback(self) {
+        let callback = self.into_jvm_obj();
+
+        crate::println!("{callback}");
+        syscall_ds_v::<1021>(100, callback.id_bits());
+        drop(callback)
+    }
+}
 
 pub fn test() {
-    let cb = Callback::new(|v1: u8,v2: u16,v3: u32| {
-        crate::println!("v1: {:08X}, v2: {:08X}, v3: {:08X}",v1,v2,v3);
-    });
-    unsafe{
+    let mut time = crate::arch::current_time_nanos();
+    let cb = CallbackMut::new(move |ran: u32| {
+        let now = crate::arch::current_time_nanos();
+        let diff = now - time;
+        time = now;
 
+        crate::println!("nano diff: {diff}, times ran: {ran}");
+    });
+
+    unsafe {
         cb.raw_dog_callback();
     }
-    // (cb.call_fn)(cb, 32);
 }
-
-// impl<F> Callback<F, (u32,)>
-// where
-//     F: FnOnce(u32) + Send + 'static,
-// {
-
-//     fn test(&self){
-
-//     }
-// }

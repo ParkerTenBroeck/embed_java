@@ -5,7 +5,7 @@
 #![feature(default_alloc_error_handler)]
 
 pub mod alloc;
-use core::{fmt::Write, time::Duration};
+use core::time::Duration;
 pub mod asteroids;
 
 use rlib::nji::{
@@ -31,14 +31,10 @@ pub unsafe extern "C" fn fmodf(f1: f32, f2: f32) -> f32 {
 
 #[no_mangle]
 pub fn main() {
-
     rlib::nji::callback::test();
-    if true{
+    if true {
         return;
     }
-
-
-
 
     let mut threads = vec::Vec::new();
     if false {
@@ -115,7 +111,7 @@ pub fn main() {
         let ret = ret.unwrap().unwrap();
         let ret = unsafe { JDoubleRef::from_obj_ref(ret) };
         let ret = ret.val();
-        //println!("{ret}");
+        println!("{ret}");
     }
     let end = rlib::arch::current_time_nanos();
     let dur = Duration::from_nanos(end - start);
@@ -180,8 +176,6 @@ pub fn main() {
 /// }  
 ///
 pub fn j_frame_test() {
-    use crate::alloc::vec::Vec;
-
     let frame_class = ClassRef::for_name("javax.swing.JFrame").unwrap();
     let panel_class = ClassRef::for_name("javax.swing.JPanel").unwrap();
     let label_class = ClassRef::for_name("javax.swing.JLabel").unwrap();

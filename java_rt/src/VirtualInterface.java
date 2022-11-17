@@ -9,6 +9,8 @@ import java.util.HashMap;
 import java.lang.reflect.*;
 import java.util.Iterator;
 import java.util.Random;
+import java.util.TimerTask;
+import java.util.Timer;
 
 public class VirtualInterface implements VirtualMachine.VirtualInterface {
 
@@ -587,8 +589,8 @@ public class VirtualInterface implements VirtualMachine.VirtualInterface {
                 emu.registers[2] = emu.sharedMemory.length >> 2;
                 break;
             case 1020:{
-                VirtualMachine.VirtualMachineThreadState vm = emu.createCallbackFromCurrentState();
-                emu.registers[2] = this.insert_object(vm);
+                VirtualMachine.Callback cb = emu.createCallbackFromCurrentState();
+                emu.registers[2] = this.insert_object(cb);
                 // Timer t = new Timer();
                 // t.schedule(new TimerTask() {
                 //     @Override
@@ -600,19 +602,22 @@ public class VirtualInterface implements VirtualMachine.VirtualInterface {
             }
             break;
             case 1021:{
-                VirtualMachine.VirtualMachineThreadState vm = (VirtualMachine.VirtualMachineThreadState)this.get_object(emu.registers[4]);
-                vm.registers[5] = 0x11223344;
-                vm.registers[6] = 6;
-                //vm.registers[7] = 0x11223344;
-                vm.run();
-                // Timer t = new Timer();
-                // t.schedule(new TimerTask() {
-                //     @Override
-                //     public void run() {
-                //         vm.run();
-                //     }
+                VirtualMachine.Callback cb = (VirtualMachine.Callback)this.get_object(emu.registers[6]);
+
+
+                long l = (((long)emu.registers[5]) & 0xFFFFFFFFL) | (((long)emu.registers[4]) << 32);
+                
+                Timer t = new Timer();
+                t.scheduleAtFixedRate(new TimerTask() {
+                    int timesRan = 0;
+                    @Override
+                    public void run() {
+                        cb.run((vm) -> {
+                            cb.vmt.registers[5] = ++timesRan;
+                        });
+                    }
                     
-                // }, call_id);
+                }, l, l);
             }
                 break;
 
