@@ -34,6 +34,16 @@ impl Object {
     }
 }
 
+pub trait ObjectRefTrait {
+    fn id_bits(&self) -> u32;
+}
+
+impl<T> ObjectRefTrait for ObjectRef<T> {
+    fn id_bits(&self) -> u32 {
+        self.id_bits()
+    }
+}
+
 pub struct ObjectRef<T>(Object, PhantomData<T>);
 
 impl<T> ObjectRef<T> {

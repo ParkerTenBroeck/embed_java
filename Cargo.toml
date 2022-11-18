@@ -8,5 +8,5 @@ members = [
 
 resolver = "2"
 
-[release]
+[profile.release]
 debug = true

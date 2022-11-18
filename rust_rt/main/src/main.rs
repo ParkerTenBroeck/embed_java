@@ -31,7 +31,26 @@ pub unsafe extern "C" fn fmodf(f1: f32, f2: f32) -> f32 {
 
 #[no_mangle]
 pub fn main() {
-    rlib::nji::callback::test();
+    use rlib::nji::callback::CallbackTrait;
+    use rlib::nji::callback::CallbackObjTrait;
+    use rlib::nji::callback::CallbackMut;
+
+    let mut time = crate::arch::current_time_nanos();
+    let cb = CallbackMut::new(move |ran: u32| {
+        let now = crate::arch::current_time_nanos();
+        let diff = now - time;
+        time = now;
+        rlib::arch::print_i32(diff as i32);
+        rlib::arch::print_char('\n');
+        rlib::arch::print_i32(ran as i32);
+        rlib::arch::print_char('\n');
+    });
+    // cb.call((23,));
+    let mut obj = cb.into_jvm_obj();
+    obj.call_rust((23,));
+    unsafe {
+        rlib::arch::syscall_ds_v::<1027>(100, obj.id_bits());
+    }
     if true {
         return;
     }

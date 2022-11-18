@@ -602,8 +602,11 @@ public class VirtualInterface implements VirtualMachine.VirtualInterface {
             }
             break;
             case 1021:{
+                emu.registers[2] = ((VirtualMachine.Callback)this.get_object(emu.registers[4])).ptr_rust_struct;
+            }
+            break;
+            case 1027:{
                 VirtualMachine.Callback cb = (VirtualMachine.Callback)this.get_object(emu.registers[6]);
-
 
                 long l = (((long)emu.registers[5]) & 0xFFFFFFFFL) | (((long)emu.registers[4]) << 32);
                 
