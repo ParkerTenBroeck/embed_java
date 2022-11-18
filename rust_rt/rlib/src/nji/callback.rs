@@ -1,6 +1,6 @@
 use core::marker::PhantomData;
 
-use crate::arch::{syscall_ds_v, syscall_s_s, syscall_sss_s};
+use crate::arch::{syscall_s_s, syscall_sss_s};
 
 use super::object::{ObjectRef, ObjectRefTrait};
 
@@ -38,10 +38,9 @@ where
     }
 }
 
-pub trait CallbackObjTrait<Args>
+pub trait CallbackObjTrait<Args>: ObjectRefTrait
 where
     Args: core::marker::Tuple,
-    Self: ObjectRefTrait,
 {
     type RustCallback: CallbackTrait<Args>;
     fn call_rust(&self, args: Args) {
@@ -221,6 +220,21 @@ where
 }
 
 // -------------------------------------
+
+
+
+pub mod timer{
+
+    use core::time::Duration;
+
+    use super::CallbackObjTrait;
+
+    pub fn start_peroid<T: CallbackObjTrait<(u32,)>>(period: Duration, obj: T){
+        unsafe{
+            crate::arch::syscall_ds_v::<1027>(period.as_millis() as u64, obj.id_bits());
+        }
+    }
+}
 
 // pub fn test() {
 //     let mut time = crate::arch::current_time_nanos();

@@ -1,8 +1,173 @@
 extern crate alloc;
+use core::{alloc::GlobalAlloc, ptr::NonNull};
+use rlib::sync::Mutex;
+
 pub use alloc::*;
 
+// #[global_allocator]
+// static ALLOCATOR: emballoc::Allocator<0x50000> = emballoc::Allocator::new();
+
+
 #[global_allocator]
-static ALLOCATOR: emballoc::Allocator<0x50000> = emballoc::Allocator::new();
+static ALLOCATOR: Alloc = Alloc::new();
+
+struct Alloc{
+    inner: Mutex<AllocInner>
+}
+
+unsafe impl Sync for Alloc{}
+
+unsafe impl Send for Alloc{}
+
+impl Alloc{
+    pub const fn new() -> Self{
+        Self 
+        { 
+            inner: Mutex::new(AllocInner::new())
+        }
+    }
+}
+struct AllocInner{
+    allocations: usize,
+    memory_allocated: usize,
+    first: Option<NonNull<Node>>,
+    last: Option<NonNull<Node>>
+}
+
+impl AllocInner{
+    pub const fn new() -> Self{
+        Self{
+            first: None,
+            last: None,
+            allocations: 0,
+            memory_allocated: 0,
+        }
+    }
+}
+
+
+unsafe impl GlobalAlloc for Alloc{
+    unsafe fn alloc(&self, layout: core::alloc::Layout) -> *mut u8 {
+        let lock = &mut *self.inner.lock();
+
+
+        let mut align = layout.align();
+        if align < core::mem::align_of::<Node>(){
+            align = core::mem::align_of::<Node>();
+        };
+
+        match lock.first{
+            Some(mut node) => {
+                loop{
+                    if let Some(mut next) = node.as_mut().next{
+
+                        let addr = next.addr().get();
+                        let addr = addr + core::mem::size_of::<Node>() + next.as_mut().size;
+                        let addr = (addr + align - 1) & !(align - 1); 
+
+                        let node_start = addr - core::mem::size_of::<Node>();
+                        let size = (layout.size() + core::mem::size_of::<Node>() + align - 1) & !(align - 1);
+
+                        if let Some(mut next_next) = next.as_mut().next{
+                            if node_start + size < next_next.addr().get(){
+
+                                let node_start:*mut Node = core::ptr::from_exposed_addr_mut(node_start);
+                                let mut node_start = NonNull::new_unchecked(node_start);
+
+                                next_next.as_mut().last = Some(node_start);
+
+                                node_start.as_mut().next = Some(next_next);
+                                node_start.as_mut().last = Some(next);
+                                node_start.as_mut().size = (layout.size() + core::mem::size_of::<Node>() + align - 1) & !(align - 1); 
+
+                                next.as_mut().next = Some(node_start);
+
+
+                                let addr = core::ptr::from_exposed_addr_mut(addr);
+                                // crate::println!("3: {:?}, {:?}",&node_start, node_start.as_ref());
+                                lock.memory_allocated += layout.size();
+                                lock.allocations += 1;
+                                return addr;
+                            } 
+                        }
+                        
+
+
+                        node = next;
+                    }else{
+                        let addr = node.addr().get();
+                        let addr = addr + core::mem::size_of::<Node>() + node.as_mut().size;
+                        let addr = (addr + align - 1) & !(align - 1); 
+
+                        let node_start = addr - core::mem::size_of::<Node>();
+                        let node_start:*mut Node = core::ptr::from_exposed_addr_mut(node_start);
+                        let mut node_start = NonNull::new_unchecked(node_start);
+
+                        node_start.as_mut().next = None;
+                        node_start.as_mut().last = Some(node);
+                        node_start.as_mut().size = (layout.size() + core::mem::size_of::<Node>() + align - 1) & !(align - 1); 
+
+                        node.as_mut().next = Some(node_start);
+
+
+                        let addr = core::ptr::from_exposed_addr_mut(addr);
+                        // crate::println!("2: {:?}, {:?}",&node_start, node_start.as_ref());
+                        lock.memory_allocated += layout.size();
+                        lock.allocations += 1;
+                        return addr;
+                    }
+                }
+            }
+            None => {
+                let addr = rlib::rt::heap_address();
+                let addr = addr as usize;
+                let addr = addr + core::mem::size_of::<Node>();
+                let addr = (addr + align - 1) & !(align - 1); 
+                let heap_start = addr - core::mem::size_of::<Node>();
+
+                let heap_start:*mut Node = core::ptr::from_exposed_addr_mut(heap_start);
+                let mut heap_start = NonNull::new_unchecked(heap_start);
+                
+                heap_start.as_mut().next = None;
+                heap_start.as_mut().last = None;
+                heap_start.as_mut().size = (layout.size() + core::mem::size_of::<Node>() + align - 1) & !(align - 1); 
+                
+                lock.first = Some(heap_start);
+
+                let addr = core::ptr::from_exposed_addr_mut(addr);
+                // crate::println!("1: {:?}, {:?}",&heap_start, heap_start.as_ref());
+                lock.memory_allocated += layout.size();
+                lock.allocations += 1;
+                return addr;
+            }
+        }
+    }
+
+    unsafe fn dealloc(&self, ptr: *mut u8, _layout: core::alloc::Layout) {
+        let lock = &mut *self.inner.lock();
+        let node_start = ptr.sub(core::mem::size_of::<Node>());
+        let node_start: *mut Node = core::mem::transmute(node_start);
+
+        let last = &mut node_start.as_mut().unwrap_unchecked().last;
+        lock.allocations -= 1;
+        lock.memory_allocated -= layout.size();
+        if let Some(last) = last{
+            last.as_mut().next = node_start.as_mut().unwrap_unchecked().next;
+        }else{
+            lock.first = node_start.as_mut().unwrap_unchecked().next;
+        }
+
+        // crate::println!("dealloc {:?}, {:?}",node_start, node_start.as_ref().unwrap_unchecked());
+    }
+}
+
+#[derive(Debug)]
+struct Node{
+    next: Option<NonNull<Node>>,
+    last: Option<NonNull<Node>>,
+    size: usize,
+}
+
 
 // #[global_allocator]
 // static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
