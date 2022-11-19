@@ -11,8 +11,8 @@ pub struct Alloc {
     inner: Mutex<AllocInner>,
 }
 
-impl Alloc{
-    pub fn lock(&self) -> MutexGuard<AllocInner>{
+impl Alloc {
+    pub fn lock(&self) -> MutexGuard<AllocInner> {
         self.inner.lock()
     }
 }
@@ -122,33 +122,52 @@ impl AllocInner {
         }
     }
 
-    unsafe fn allocate_infront(&mut self, mut node: NonNull<Node>, layout: core::alloc::Layout) -> Option<NonNull<u8>> {
+    pub fn unused_gap_bytes(&self) -> usize{
+        let mut gaps = 0;
+        let mut node = self.first;
+        while let Some(next) = node {
+            unsafe{
+                node = next.as_ref().next;
+            
+                if let Some(next_next) = node{
+                    gaps += next_next.addr().get() - (next.addr().get() + next.as_ref().size)
+                }
+            }
+        }
+        return gaps;
+    }
+    
+    unsafe fn allocate_infront(
+        &mut self,
+        mut node: NonNull<Node>,
+        layout: core::alloc::Layout,
+    ) -> Option<NonNull<u8>> {
         let addr = node.addr().get();
         let addr = addr + core::mem::size_of::<Node>() + node.as_ref().size;
         let addr = (addr + layout.align() - 1) & !(layout.align() - 1);
-    
+
         let next_node_start = addr - core::mem::size_of::<Node>();
         let next_node_start: *mut Node = core::ptr::from_exposed_addr_mut(next_node_start);
         let mut next_node_ptr = NonNull::new_unchecked(next_node_start);
-        let next_size =
-            (layout.size() + core::mem::size_of::<Node>() + layout.align() - 1) & !(layout.align() - 1);
+        let next_size = (layout.size() + core::mem::size_of::<Node>() + layout.align() - 1)
+            & !(layout.align() - 1);
         let addr = core::ptr::from_exposed_addr_mut(addr);
-    
+
         if let Some(existing_next) = node.as_ref().next {
             // if the end of this node is less than the start of the next node
             // make sure they dont overlap
             if next_node_ptr.addr().get() + next_size < existing_next.addr().get() {
-
-                next_node_ptr.as_ptr().write(Node {
+                let t = Node {
                     next: Some(existing_next),
                     last: Some(node),
                     size: next_size,
-                });
+                };
+                next_node_ptr.as_ptr().write(t);
                 if let Some(mut exist_next) = node.as_mut().next {
                     exist_next.as_mut().last = Some(next_node_ptr);
                 }
                 node.as_mut().next = Some(next_node_ptr);
-                    
+
                 self.allocations += 1;
                 self.memory_allocated += layout.size();
                 NonNull::new(addr)
@@ -156,30 +175,33 @@ impl AllocInner {
                 return None;
             }
         } else {
-            next_node_ptr.as_ptr().write(Node {
+            let t = Node {
                 next: None,
                 last: Some(node),
                 size: next_size,
-            });
+            };
+            next_node_ptr.as_ptr().write(t);
             node.as_mut().next = Some(next_node_ptr);
             self.last = Some(next_node_ptr);
-                    
+
             self.allocations += 1;
             self.memory_allocated += layout.size();
             NonNull::new(addr)
         }
     }
-    
 }
 
 unsafe impl GlobalAlloc for Alloc {
     unsafe fn alloc(&self, layout: core::alloc::Layout) -> *mut u8 {
         let lock = &mut *self.inner.lock();
 
-        let layout = layout.align_to(core::mem::align_of::<Node>()).unwrap();
+        let layout = core::alloc::Layout::from_size_align_unchecked(
+            layout.size(),
+            usize::max(layout.align(), core::mem::align_of::<Node>()),
+        );
 
         if lock.first.is_none() {
-            let heap_start_align = 0x100;
+            let heap_start_align = 0x10000;
             let addr = rlib::rt::heap_address();
             let addr = addr as usize;
             let addr = addr + core::mem::size_of::<Node>();
@@ -194,16 +216,19 @@ unsafe impl GlobalAlloc for Alloc {
             lock.last = Some(heap_start);
         }
 
-
         let mut next = lock.first;
         while let Some(mut node) = next {
+            // if let Some(allocation) = lock.allocate_infront(node, layout) {
+            //     return allocation.as_ptr();
+            // }
+
             match calc_next(node, layout) {
                 NodeCalc::CantFit => {}
                 NodeCalc::Tail(next_node_ptr, data_addr, next_node_data) => {
                     next_node_ptr.as_ptr().write(next_node_data);
                     node.as_mut().next = Some(next_node_ptr);
                     lock.last = Some(next_node_ptr);
-                    
+
                     lock.allocations += 1;
                     lock.memory_allocated += layout.size();
                     return data_addr;
@@ -214,7 +239,7 @@ unsafe impl GlobalAlloc for Alloc {
                         exist_next.as_mut().last = Some(next_node_ptr);
                     }
                     node.as_mut().next = Some(next_node_ptr);
-                    
+
                     lock.allocations += 1;
                     lock.memory_allocated += layout.size();
                     return data_addr;
@@ -235,13 +260,11 @@ unsafe impl GlobalAlloc for Alloc {
         lock.memory_allocated -= layout.size();
         if let Some(last) = last {
             last.as_mut().next = node_start.as_mut().unwrap_unchecked().next;
-            match last.as_mut().next{
-                Some(mut next) => {
-                    next.as_mut().last = Some(*last)
-                },
+            match last.as_mut().next {
+                Some(mut next) => next.as_mut().last = Some(*last),
                 None => {
                     lock.last = Some(*last);
-                },
+                }
             }
         } else {
             panic!();

@@ -9,7 +9,7 @@ use core::time::Duration;
 pub mod asteroids;
 
 use rlib::nji::{
-    callback::CallbackOnce,
+    callback::{CallbackOnce, Callback},
     class::ClassRef,
     object::ObjectArrayRef,
     primitives::{JBooleanRef, JCharRef, JDoubleRef, JIntRef, JLongRef, JStringRef},
@@ -35,27 +35,54 @@ static ALLOCATOR: ll_alloc::Alloc = ll_alloc::Alloc::new();
 
 #[no_mangle]
 pub fn main() {
+    // for _ in 0..20 {
+    //     let start = rlib::arch::current_time_nanos();
+    //     let mut vec = alloc::vec::Vec::new();
 
-    for _ in 0..20{
+    //     for i in 0..6000 {
+    //         vec.push(alloc::boxed::Box::new(i));
+    //     }
 
-        let start = rlib::arch::current_time_nanos();
-        let mut vec = alloc::vec::Vec::new();
+    //     let end = rlib::arch::current_time_nanos();
+    //     println!("{:?}", Duration::from_nanos(end - start));
+
+    //     let lock = ALLOCATOR.lock();
+    //     let allocations = lock.allocations();
+    //     let htm = lock.heap_true_max();
+    //     let hts = lock.heap_true_size();
+    //     let pga = lock.program_memory_allocated();
+    //     let wasted = lock.unused_gap_bytes();
+    //     drop(lock);
+    //     println!(
+    //         "allocations: {}, true max: {}, true size: {}, allocated: {}, wasted: {}",
+    //         allocations, htm, hts, pga, wasted
+    //     );
+    // }
+
+    let mut game = asteroids::Game::new();
+
+    use rlib::nji::callback::CallbackTrait;
     
-        for i in 0..6000 {
-            vec.push(alloc::boxed::Box::new(i));
-        }
-    
-        let end = rlib::arch::current_time_nanos();
-        println!("{:?}", Duration::from_nanos(end - start));
-
+    let cb = Callback::new(|ran: u32|{
         let lock = ALLOCATOR.lock();
         let allocations = lock.allocations();
         let htm = lock.heap_true_max();
         let hts = lock.heap_true_size();
         let pga = lock.program_memory_allocated();
+        let wasted = lock.unused_gap_bytes();
         drop(lock);
-        println!("allocations: {}, true max: {}, true size: {}, allocated: {}", allocations, htm, hts, pga);
+        println!(
+            "allocations: {}, true max: {}, true size: {}, allocated: {}, wasted: {}",
+            allocations, htm, hts, pga, wasted
+        );
+    });
+
+    rlib::nji::callback::timer::start_peroid(Duration::from_millis(10), cb.into_jvm_obj());
+
+    loop {
+        game.run_frame();
     }
+
     // println!("{:?}", vec);
 
     // use rlib::nji::callback::CallbackMut;

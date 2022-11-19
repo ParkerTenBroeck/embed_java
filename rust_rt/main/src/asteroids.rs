@@ -132,10 +132,18 @@ impl Game {
             self.spawn_asteroids();
         }
 
+        if rlib::arch::is_key_pressed('g') {
+            for _ in 0..100{
+
+                self.spawn_asteroid();
+            }
+        }
+
         if rlib::arch::is_key_pressed('q') {
             while rlib::arch::is_key_pressed('q') {}
             self.show_debug = !self.show_debug;
         }
+
         self.screen
             .push_command(ScreenCommand::SetColor([0, 0, 0, 255]));
         self.screen.push_command(ScreenCommand::Clear);
@@ -404,15 +412,19 @@ impl Game {
 
     fn spawn_asteroids(&mut self) {
         while self.asteroids.len() < (self.level + 5) as usize {
-            let x = rlib::arch::rand_range(0, self.screen.get_width() as i32) as f32;
-            let y = rlib::arch::rand_range(0, self.screen.get_height() as i32) as f32;
-            let asteroid = Asteroid::new(Vector::new(x, y), 3);
-            let d_x = asteroid.pos.x - self.ship.pos.x;
-            let d_y = asteroid.pos.y - self.ship.pos.y;
-            let dis = d_x * d_x + d_y * d_y;
-            if dis > 10000.0 {
-                self.asteroids.push(asteroid);
-            }
+            self.spawn_asteroid()
+        }
+    }
+
+    fn spawn_asteroid(&mut self){
+        let x = rlib::arch::rand_range(0, self.screen.get_width() as i32) as f32;
+        let y = rlib::arch::rand_range(0, self.screen.get_height() as i32) as f32;
+        let asteroid = Asteroid::new(Vector::new(x, y), 3);
+        let d_x = asteroid.pos.x - self.ship.pos.x;
+        let d_y = asteroid.pos.y - self.ship.pos.y;
+        let dis = d_x * d_x + d_y * d_y;
+        if dis > 10000.0 {
+            self.asteroids.push(asteroid);
         }
     }
 }
