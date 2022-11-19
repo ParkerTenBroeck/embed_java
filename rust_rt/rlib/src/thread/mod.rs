@@ -120,7 +120,7 @@ impl Display for Thread {
     }
 }
 
-pub fn sleep(dur: Duration) {
+pub fn sleep(_dur: Duration) {
     unimplemented!("uh you're not suppost to see this yet :)");
     // let nanos = dur.as_nanos() as u64;
     // unsafe {

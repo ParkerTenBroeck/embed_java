@@ -114,8 +114,6 @@ impl Game {
 
     pub fn run_frame(&mut self) {
         let instructions_ran = rlib::arch::get_instructions_ran();
-        let now = rlib::arch::current_time_nanos();
-        self.tracker.new_frame(now, instructions_ran);
 
         if self.reset {
             self.alian_ship = None;
@@ -132,11 +130,11 @@ impl Game {
             self.spawn_asteroids();
         }
 
-        if rlib::arch::is_key_pressed('g') {
-            for _ in 0..100{
+        let now = rlib::arch::current_time_nanos();
+        self.tracker.new_frame(now, instructions_ran);
 
-                self.spawn_asteroid();
-            }
+        if rlib::arch::is_key_pressed('g') {
+            self.spawn_asteroid();
         }
 
         if rlib::arch::is_key_pressed('q') {
@@ -444,7 +442,9 @@ struct Ship {
 
 enum ShipCollision {
     Asteroid(usize),
+    #[allow(unused)]
     Bullet(usize),
+    #[allow(unused)]
     AlianShip,
     None,
 }

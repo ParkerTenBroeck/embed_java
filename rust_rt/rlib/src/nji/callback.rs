@@ -5,7 +5,7 @@ use crate::arch::{syscall_s_s, syscall_sss_s};
 use super::object::{ObjectRef, ObjectRefTrait};
 
 #[repr(C)]
-struct FfiTuple<T: core::marker::Tuple>(T);
+pub struct FfiTuple<T: core::marker::Tuple>(T);
 
 //--------------------------------------------------------
 
@@ -21,8 +21,8 @@ where
     type JniObj;
 
     fn call(&self, args: Args);
-    extern "C" fn trampoline(&'static self, args: Args) {
-        self.call(args);
+    extern "C" fn trampoline(&'static self, args: FfiTuple<Args>) {
+        self.call(args.0);
     }
     fn into_jvm_obj(self) -> ObjectRef<Self::JniObj> {
         let tramp = Self::trampoline;

@@ -4,9 +4,6 @@
 use core::{alloc::GlobalAlloc, ptr::NonNull};
 use rlib::sync::{Mutex, MutexGuard};
 
-// #[global_allocator]
-// static ALLOCATOR: emballoc::Allocator<0x50000> = emballoc::Allocator::new();
-
 pub struct Alloc {
     inner: Mutex<AllocInner>,
 }
@@ -51,7 +48,7 @@ unsafe fn calc_next(node: NonNull<Node>, layout: core::alloc::Layout) -> NodeCal
 
     let next_node_start = addr - core::mem::size_of::<Node>();
     let next_node_start: *mut Node = core::ptr::from_exposed_addr_mut(next_node_start);
-    let mut next_node_start = NonNull::new_unchecked(next_node_start);
+    let next_node_start = NonNull::new_unchecked(next_node_start);
     let next_size =
         (layout.size() + core::mem::size_of::<Node>() + layout.align() - 1) & !(layout.align() - 1);
     let addr = core::ptr::from_exposed_addr_mut(addr);
@@ -137,6 +134,7 @@ impl AllocInner {
         return gaps;
     }
     
+    #[allow(unused)]
     unsafe fn allocate_infront(
         &mut self,
         mut node: NonNull<Node>,
@@ -148,7 +146,7 @@ impl AllocInner {
 
         let next_node_start = addr - core::mem::size_of::<Node>();
         let next_node_start: *mut Node = core::ptr::from_exposed_addr_mut(next_node_start);
-        let mut next_node_ptr = NonNull::new_unchecked(next_node_start);
+        let next_node_ptr = NonNull::new_unchecked(next_node_start);
         let next_size = (layout.size() + core::mem::size_of::<Node>() + layout.align() - 1)
             & !(layout.align() - 1);
         let addr = core::ptr::from_exposed_addr_mut(addr);
