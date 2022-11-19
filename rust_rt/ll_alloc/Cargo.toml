@@ -1,0 +1,8 @@
+[package]
+name = "ll_alloc"
+version = "0.1.0"
+edition = "2021"
+description = "A custom (bad) linked list allocator"
+
+[dependencies]
+rlib ={ path="../rlib" }

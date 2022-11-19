@@ -17,15 +17,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "emballoc"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d4eed917e2554e1b4f4de3a320b735d759b19c9ac1d951d5b7292f48bbc6828d"
-dependencies = [
- "spin 0.9.4",
-]
-
-[[package]]
 name = "lazy_static"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -39,6 +30,13 @@ name = "libm"
 version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "348108ab3fba42ec82ff6e9564fc4ca0247bdccdc68dd8af9764bbc79c3c8ffb"
+
+[[package]]
+name = "ll_alloc"
+version = "0.1.0"
+dependencies = [
+ "rlib",
+]
 
 [[package]]
 name = "llvm-tools"
@@ -67,9 +65,9 @@ dependencies = [
 name = "main"
 version = "0.1.0"
 dependencies = [
- "emballoc",
  "lazy_static",
  "libm",
+ "ll_alloc",
  "macros",
  "num-traits",
  "rlib",

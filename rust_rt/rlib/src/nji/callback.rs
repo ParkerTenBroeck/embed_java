@@ -221,16 +221,14 @@ where
 
 // -------------------------------------
 
-
-
-pub mod timer{
+pub mod timer {
 
     use core::time::Duration;
 
     use super::CallbackObjTrait;
 
-    pub fn start_peroid<T: CallbackObjTrait<(u32,)>>(period: Duration, obj: T){
-        unsafe{
+    pub fn start_peroid<T: CallbackObjTrait<(u32,)>>(period: Duration, obj: T) {
+        unsafe {
             crate::arch::syscall_ds_v::<1027>(period.as_millis() as u64, obj.id_bits());
         }
     }

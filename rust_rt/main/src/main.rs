@@ -4,14 +4,15 @@
 #![feature(strict_provenance)]
 #![feature(default_alloc_error_handler)]
 
-pub mod alloc;
+extern crate alloc;
 use core::time::Duration;
 pub mod asteroids;
 
 use rlib::nji::{
+    callback::CallbackOnce,
     class::ClassRef,
     object::ObjectArrayRef,
-    primitives::{JBooleanRef, JCharRef, JDoubleRef, JIntRef, JLongRef, JStringRef}, callback::CallbackOnce,
+    primitives::{JBooleanRef, JCharRef, JDoubleRef, JIntRef, JLongRef, JStringRef},
 };
 pub use rlib::*;
 
@@ -29,43 +30,44 @@ pub unsafe extern "C" fn fmodf(f1: f32, f2: f32) -> f32 {
     libm::fmodf(f1, f2)
 }
 
+#[global_allocator]
+static ALLOCATOR: ll_alloc::Alloc = ll_alloc::Alloc::new();
+
 #[no_mangle]
 pub fn main() {
+    let mut vec = alloc::vec::Vec::new();
 
-
-    // let mut vec = alloc::vec::Vec::new();
-
-    // for i in 0..6000{
-    //     vec.push(alloc::boxed::Box::new(i));
-    // }
-
-    // println!("{:?}", vec);
-
-    use rlib::nji::callback::CallbackTrait;
-    use rlib::nji::callback::CallbackObjTrait;
-    use rlib::nji::callback::CallbackMut;
-
-    for _ in 0..500{
-        let mut time = crate::arch::current_time_nanos();
-        let cb = CallbackMut::new(move |ran: u32| {
-            let now = crate::arch::current_time_nanos();
-            let diff = now - time;
-            time = now;
-            rlib::arch::print_i32(diff as i32);
-            rlib::arch::print_char('\n');
-            rlib::arch::print_i32(ran as i32);
-            rlib::arch::print_char('\n');
-        });
-        // cb.call((23,));
-        let mut obj = cb.into_jvm_obj();
-        // obj.call_rust((23,));
-        rlib::nji::callback::timer::start_peroid(Duration::from_millis(100), obj);
+    for i in 0..6000 {
+        vec.push(alloc::boxed::Box::new(i));
     }
+
+    println!("{:?}", vec);
+
+    // use rlib::nji::callback::CallbackMut;
+    // use rlib::nji::callback::CallbackObjTrait;
+    // use rlib::nji::callback::CallbackTrait;
+
+    // for _ in 0..500 {
+    //     let mut time = crate::arch::current_time_nanos();
+    //     let cb = CallbackMut::new(move |ran: u32| {
+    //         let now = crate::arch::current_time_nanos();
+    //         let diff = now - time;
+    //         time = now;
+    //         rlib::arch::print_i32(diff as i32);
+    //         rlib::arch::print_char('\n');
+    //         rlib::arch::print_i32(ran as i32);
+    //         rlib::arch::print_char('\n');
+    //     });
+    //     // cb.call((23,));
+    //     let mut obj = cb.into_jvm_obj();
+    //     // obj.call_rust((23,));
+    //     rlib::nji::callback::timer::start_peroid(Duration::from_millis(100), obj);
+    // }
 
     // test();
 }
 
-pub fn test(){
+pub fn test() {
     let mut threads = vec::Vec::new();
     if false {
         for i in 0..(rlib::thread::available_parallelism() - 1) {
