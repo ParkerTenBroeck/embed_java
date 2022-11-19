@@ -35,13 +35,28 @@ static ALLOCATOR: ll_alloc::Alloc = ll_alloc::Alloc::new();
 
 #[no_mangle]
 pub fn main() {
-    let mut vec = alloc::vec::Vec::new();
 
-    for i in 0..6000 {
-        vec.push(alloc::boxed::Box::new(i));
+    for _ in 0..20{
+
+        let start = rlib::arch::current_time_nanos();
+        let mut vec = alloc::vec::Vec::new();
+    
+        for i in 0..6000 {
+            vec.push(alloc::boxed::Box::new(i));
+        }
+    
+        let end = rlib::arch::current_time_nanos();
+        println!("{:?}", Duration::from_nanos(end - start));
+
+        let lock = ALLOCATOR.lock();
+        let allocations = lock.allocations();
+        let htm = lock.heap_true_max();
+        let hts = lock.heap_true_size();
+        let pga = lock.program_memory_allocated();
+        drop(lock);
+        println!("allocations: {}, true max: {}, true size: {}, allocated: {}", allocations, htm, hts, pga);
     }
-
-    println!("{:?}", vec);
+    // println!("{:?}", vec);
 
     // use rlib::nji::callback::CallbackMut;
     // use rlib::nji::callback::CallbackObjTrait;

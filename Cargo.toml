@@ -2,6 +2,7 @@
 members = [
 	"rust_rt/rlib",
 	"rust_rt/main",
+	"rust_rt/ll_alloc",
 	"rust_rt/macros",
 	"build_tools"
 ]

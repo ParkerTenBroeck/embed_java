@@ -1,20 +1,17 @@
-#![no_std]
-#![feature(strict_provenance)]
-
+extern crate alloc;
 use core::{alloc::GlobalAlloc, ptr::NonNull};
-use rlib::sync::{Mutex, MutexGuard};
+use rlib::sync::Mutex;
+
+pub use alloc::*;
 
 // #[global_allocator]
 // static ALLOCATOR: emballoc::Allocator<0x50000> = emballoc::Allocator::new();
 
-pub struct Alloc {
-    inner: Mutex<AllocInner>,
-}
+#[global_allocator]
+static ALLOCATOR: Alloc = Alloc::new();
 
-impl Alloc{
-    pub fn lock(&self) -> MutexGuard<AllocInner>{
-        self.inner.lock()
-    }
+struct Alloc {
+    inner: Mutex<AllocInner>,
 }
 
 unsafe impl Sync for Alloc {}
@@ -27,7 +24,7 @@ impl Alloc {
         }
     }
 }
-pub struct AllocInner {
+struct AllocInner {
     /// Number of allocations
     allocations: usize,
     /// Number of bytes allocated to actual program data
@@ -42,6 +39,44 @@ enum NodeCalc {
     CantFit,
     Tail(NonNull<Node>, *mut u8, Node),
     Insert(NonNull<Node>, *mut u8, Node),
+}
+
+impl AllocInner {
+    pub const fn new() -> Self {
+        Self {
+            first: None,
+            last: None,
+            allocations: 0,
+            memory_allocated: 0,
+            heap_true_max: 0,
+        }
+    }
+
+    pub fn allocations(&self) -> usize{
+        self.allocations
+    }
+
+    pub fn program_memory_allocated(&self) -> usize{
+        self.memory_allocated
+    }
+
+    pub fn heap_true_max(&self) -> usize{
+        self.heap_true_max
+    }
+
+    pub fn heap_true_size(&self) -> usize {
+        if let Some(first) = self.first {
+            if let Some(last) = self.last {
+                unsafe {
+                    return last.as_ref().size + last.addr().get() - first.addr().get();
+                }
+            } else {
+                return 0;
+            }
+        } else {
+            return 0;
+        }
+    }
 }
 
 unsafe fn calc_next(node: NonNull<Node>, layout: core::alloc::Layout) -> NodeCalc {
@@ -85,93 +120,6 @@ unsafe fn calc_next(node: NonNull<Node>, layout: core::alloc::Layout) -> NodeCal
     }
 }
 
-impl AllocInner {
-    pub const fn new() -> Self {
-        Self {
-            first: None,
-            last: None,
-            allocations: 0,
-            memory_allocated: 0,
-            heap_true_max: 0,
-        }
-    }
-
-    pub fn allocations(&self) -> usize {
-        self.allocations
-    }
-
-    pub fn program_memory_allocated(&self) -> usize {
-        self.memory_allocated
-    }
-
-    pub fn heap_true_max(&self) -> usize {
-        self.heap_true_max
-    }
-
-    pub fn heap_true_size(&self) -> usize {
-        if let Some(first) = self.first {
-            if let Some(last) = self.last {
-                unsafe {
-                    return last.as_ref().size + last.addr().get() - first.addr().get();
-                }
-            } else {
-                return 0;
-            }
-        } else {
-            return 0;
-        }
-    }
-
-    unsafe fn allocate_infront(&mut self, mut node: NonNull<Node>, layout: core::alloc::Layout) -> Option<NonNull<u8>> {
-        let addr = node.addr().get();
-        let addr = addr + core::mem::size_of::<Node>() + node.as_ref().size;
-        let addr = (addr + layout.align() - 1) & !(layout.align() - 1);
-    
-        let next_node_start = addr - core::mem::size_of::<Node>();
-        let next_node_start: *mut Node = core::ptr::from_exposed_addr_mut(next_node_start);
-        let mut next_node_ptr = NonNull::new_unchecked(next_node_start);
-        let next_size =
-            (layout.size() + core::mem::size_of::<Node>() + layout.align() - 1) & !(layout.align() - 1);
-        let addr = core::ptr::from_exposed_addr_mut(addr);
-    
-        if let Some(existing_next) = node.as_ref().next {
-            // if the end of this node is less than the start of the next node
-            // make sure they dont overlap
-            if next_node_ptr.addr().get() + next_size < existing_next.addr().get() {
-
-                next_node_ptr.as_ptr().write(Node {
-                    next: Some(existing_next),
-                    last: Some(node),
-                    size: next_size,
-                });
-                if let Some(mut exist_next) = node.as_mut().next {
-                    exist_next.as_mut().last = Some(next_node_ptr);
-                }
-                node.as_mut().next = Some(next_node_ptr);
-                    
-                self.allocations += 1;
-                self.memory_allocated += layout.size();
-                NonNull::new(addr)
-            } else {
-                return None;
-            }
-        } else {
-            next_node_ptr.as_ptr().write(Node {
-                next: None,
-                last: Some(node),
-                size: next_size,
-            });
-            node.as_mut().next = Some(next_node_ptr);
-            self.last = Some(next_node_ptr);
-                    
-            self.allocations += 1;
-            self.memory_allocated += layout.size();
-            NonNull::new(addr)
-        }
-    }
-    
-}
-
 unsafe impl GlobalAlloc for Alloc {
     unsafe fn alloc(&self, layout: core::alloc::Layout) -> *mut u8 {
         let lock = &mut *self.inner.lock();
@@ -194,7 +142,6 @@ unsafe impl GlobalAlloc for Alloc {
             lock.last = Some(heap_start);
         }
 
-
         let mut next = lock.first;
         while let Some(mut node) = next {
             match calc_next(node, layout) {
@@ -203,9 +150,11 @@ unsafe impl GlobalAlloc for Alloc {
                     next_node_ptr.as_ptr().write(next_node_data);
                     node.as_mut().next = Some(next_node_ptr);
                     lock.last = Some(next_node_ptr);
-                    
-                    lock.allocations += 1;
-                    lock.memory_allocated += layout.size();
+                    crate::println!(
+                        "1: {:?}, {:?}",
+                        &next_node_ptr,
+                        next_node_ptr.as_ref()
+                    );
                     return data_addr;
                 }
                 NodeCalc::Insert(next_node_ptr, data_addr, next_node_data) => {
@@ -214,9 +163,11 @@ unsafe impl GlobalAlloc for Alloc {
                         exist_next.as_mut().last = Some(next_node_ptr);
                     }
                     node.as_mut().next = Some(next_node_ptr);
-                    
-                    lock.allocations += 1;
-                    lock.memory_allocated += layout.size();
+                    crate::println!(
+                        "2: {:?}, {:?}",
+                        &next_node_ptr,
+                        next_node_ptr.as_ref()
+                    );
                     return data_addr;
                 }
             }
@@ -235,13 +186,8 @@ unsafe impl GlobalAlloc for Alloc {
         lock.memory_allocated -= layout.size();
         if let Some(last) = last {
             last.as_mut().next = node_start.as_mut().unwrap_unchecked().next;
-            match last.as_mut().next{
-                Some(mut next) => {
-                    next.as_mut().last = Some(*last)
-                },
-                None => {
-                    lock.last = Some(*last);
-                },
+            if node_start.as_mut().unwrap_unchecked().next.is_none() {
+                lock.last = last;
             }
         } else {
             panic!();
