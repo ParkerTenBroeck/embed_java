@@ -6,6 +6,13 @@ I made this so I could 'use' rust for a intro to java course (obviously as a jok
 
 Now rust can run on over 3 billion devices and is "truly" system agnostic --all systems are mips now-- 
 
+
+# Demo
+
+A (bad) version of asteroids written in Rust running on the JVM
+
+[![Demo](https://img.youtube.com/vi/1__tTtZ4K48/default.jpg)](https://www.youtube.com/watch?v=1__tTtZ4K48)
+
 # Getting started
 
 ## Prerequisites
