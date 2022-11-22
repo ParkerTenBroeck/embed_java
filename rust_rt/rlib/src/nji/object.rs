@@ -5,8 +5,7 @@ use core::{
     num::NonZeroU32,
 };
 
-extern crate alloc;
-use alloc::{string::String, vec::Vec};
+pub use crate::prelude::*;
 
 use crate::arch::*;
 

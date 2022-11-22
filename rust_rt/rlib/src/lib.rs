@@ -20,6 +20,10 @@ compile_error!("ONLY MIPS ARCHITECTURE SUPPORTED");
 #[cfg(not(target_endian = "big"))]
 compile_error!("NOT BIG ENDIAN");
 
+
+pub mod prelude;
+
+
 // these are for fun :)
 pub mod brock;
 pub mod nji;
@@ -35,10 +39,11 @@ pub mod thread;
 pub use core::*;
 
 #[cfg(feature = "alloc")]
-extern crate alloc;
+extern crate alloc as alloc_crate;
 
 #[cfg(feature = "alloc")]
-pub use alloc::*;
+pub use alloc_crate::*;
+
 
 pub mod macros;
 pub use macros::*;

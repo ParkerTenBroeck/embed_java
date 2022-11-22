@@ -3,7 +3,8 @@ extern crate alloc;
 use super::class::ClassRef;
 use super::object::ObjectRef;
 use crate::arch::*;
-use alloc::string::String;
+
+pub use crate::prelude::*;
 
 pub struct JString;
 pub type JStringRef = ObjectRef<JString>;

@@ -4,6 +4,8 @@ use crate::arch::{syscall_s_s, syscall_sss_s};
 
 use super::object::{ObjectRef, ObjectRefTrait};
 
+use crate::prelude::*;
+
 #[repr(C)]
 pub struct FfiTuple<T: core::marker::Tuple>(T);
 
@@ -28,8 +30,8 @@ where
         let tramp = Self::trampoline;
         let tramp_exit = trampoline_exit;
 
-        let boxed = alloc::boxed::Box::new(self);
-        let leaked = alloc::boxed::Box::into_raw(boxed);
+        let boxed = Box::new(self);
+        let leaked = Box::into_raw(boxed);
 
         unsafe {
             let ret = syscall_sss_s::<1020>(tramp as u32, tramp_exit as u32, leaked as u32);

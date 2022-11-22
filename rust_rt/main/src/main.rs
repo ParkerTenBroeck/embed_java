@@ -4,7 +4,6 @@
 #![feature(strict_provenance)]
 #![feature(default_alloc_error_handler)]
 
-extern crate alloc;
 #[allow(unused)]
 use core::time::Duration;
 pub mod asteroids;

@@ -2,6 +2,9 @@ use crate::arch::{syscall_ss_ss, syscall_sss_ss, INVOKE_CONSTRUCTOR, INVOKE_METH
 
 use super::object::{Object, ObjectArrayRef, ObjectRef};
 
+#[allow(unused_imports)]
+pub use crate::prelude::*;
+
 pub struct Method;
 pub type MethodRef = ObjectRef<Method>;
 
