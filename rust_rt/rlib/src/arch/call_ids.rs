@@ -360,3 +360,9 @@ pub const GET_OWNED_MEMORY_LENGTH: u32 = 1003;
 ///
 /// Register 2: length of shared memory in bytes
 pub const GET_SHARED_MEMORY_LENGTH: u32 = 1004;
+
+
+/// Set the length of this processes shared memory
+///
+/// Register 4: new length of shared memory
+pub const SET_OWNED_MEMORY_LENGTH: u32 = 1005;

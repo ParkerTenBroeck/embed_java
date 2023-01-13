@@ -3,7 +3,6 @@
 #![feature(const_for)]
 #![feature(strict_provenance)]
 
-use core::hint::black_box;
 #[allow(unused)]
 use core::time::Duration;
 pub mod asteroids;
@@ -36,6 +35,8 @@ static ALLOCATOR: ll_alloc::Alloc = ll_alloc::Alloc::new();
 
 #[no_mangle]
 pub fn main() {
+
+    // test();
     //let mut bruh:u32 = black_box(0x11223344);
     // let bruh_p = black_box(core::ptr::from_exposed_addr_mut(0xFFFFFFF8));
     // unsafe{core::ptr::write_unaligned(bruh_p, 0x11223344u32)}
@@ -75,20 +76,21 @@ pub fn main() {
     // this just prints heap usage every 10 ms
     // but it can cause some stutering 
     //  use rlib::nji::callback::CallbackTrait;
-    // let cb = Callback::new(|ran: u32|{
-    //     let lock = ALLOCATOR.lock();
-    //     let allocations = lock.allocations();
-    //     let htm = lock.heap_true_max();
-    //     let hts = lock.heap_true_size();
-    //     let pga = lock.program_memory_allocated();
-    //     let wasted = lock.unused_gap_bytes();
-    //     drop(lock);
-    //     println!(
-    //         "allocations: {}, true max: {}, true size: {}, allocated: {}, wasted: {}",
-    //         allocations, htm, hts, pga, wasted
-    //     );
-    // });
-    // rlib::nji::callback::timer::start_peroid(Duration::from_millis(10), cb.into_jvm_obj());
+    use rlib::nji::callback::CallbackTrait;
+    let cb = Callback::new(|ran: u32|{
+        let lock = ALLOCATOR.lock();
+        let allocations = lock.allocations();
+        let htm = lock.heap_true_max();
+        let hts = lock.heap_true_size();
+        let pga = lock.program_memory_allocated();
+        let wasted = lock.unused_gap_bytes();
+        drop(lock);
+        println!(
+            "allocations: {}, true max: {}, true size: {}, allocated: {}, wasted: {}",
+            allocations, htm, hts, pga, wasted
+        );
+    });
+    rlib::nji::callback::timer::start_peroid(Duration::from_millis(10), cb.into_jvm_obj());
 
     println!("briuh");
     loop {
@@ -121,33 +123,34 @@ pub fn main() {
     // test();
 }
 
-// pub fn test() {
-//     let mut threads = vec::Vec::new();
-//     if false {
-//         for i in 0..(rlib::thread::available_parallelism() - 1) {
-//             let t = rlib::thread::spawn(move || {
-//                 fn is_prime(n: u32) -> bool {
-//                     if n <= 1 {
-//                         return false;
-//                     }
-//                     for a in 2..n {
-//                         if n % a == 0 {
-//                             return false; // if it is not the last statement you need to use `return`
-//                         }
-//                     }
-//                     true // last value to return
-//                 }
+pub fn test() {
+    let mut threads = vec::Vec::new();
+    if true {
+        for i in 0..(rlib::thread::available_parallelism() - 1) {
+            let t = rlib::thread::spawn(move || {
+                fn is_prime(n: u32) -> bool {
+                    if n <= 1 {
+                        return false;
+                    }
+                    for a in 2..n {
+                        if n % a == 0 {
+                            return false; // if it is not the last statement you need to use `return`
+                        }
+                    }
+                    true // last value to return
+                }
 
-//                 for n in 0..200000 {
-//                     if is_prime(n) {
-//                         println!("Thread: {i} -> {n} is prime");
-//                     }
-//                 }
-//                 (i, i + 44)
-//             });
-//             threads.push(t.unwrap());
-//         }
-//     }
+                for n in 0..200000 {
+                    if is_prime(n) {
+                        println!("Thread: {i} -> {n} is prime");
+                    }
+                }
+                (i, i + 44)
+            });
+            threads.push(t.unwrap());
+        }
+    }
+}
 
 //     let mut game = asteroids::Game::new();
 

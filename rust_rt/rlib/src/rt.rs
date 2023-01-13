@@ -1,3 +1,5 @@
+use crate::arch::{syscall_v_s, syscall_s_v};
+
 // Entry point to program
 core::arch::global_asm!(
     // we really should zero the bss section but.. well java does that for us
@@ -46,5 +48,25 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
     crate::println!("PANIC AT THE DISCO: {:#?}", info);
     loop {
         crate::process::exit(-1);
+    }
+}
+
+
+pub unsafe fn set_owned_mem_size(length: u32) {
+    use crate::arch::SET_OWNED_MEMORY_LENGTH;
+    syscall_s_v::<SET_OWNED_MEMORY_LENGTH>(length);
+}
+
+pub fn get_shared_mem_size() -> u32 {
+    use crate::arch::GET_SHARED_MEMORY_LENGTH;
+    unsafe{
+        syscall_v_s::<GET_SHARED_MEMORY_LENGTH>()
+    }
+}
+
+pub fn get_owned_mem_size() -> u32 {
+    use crate::arch::GET_OWNED_MEMORY_LENGTH;
+    unsafe{
+        syscall_v_s::<GET_OWNED_MEMORY_LENGTH>()
     }
 }

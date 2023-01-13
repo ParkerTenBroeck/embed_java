@@ -558,7 +558,7 @@ public class VirtualInterface implements VirtualMachine.VirtualInterface {
                 int start_pc = emu.registers[4];
                 int arg_r4_p = emu.registers[5];
                 int stack_size = emu.registers[6];
-                int stack_start = stack_size + 0x80000000;
+                int stack_start = 0xFFFFFFF0;
                 VirtualMachine.VirtualMachineThreadState vm = emu.createAccociatedVMStateWithOwnedMemorySize(stack_size);
                 vm.pc = start_pc;
                 vm.registers[4] = arg_r4_p;
@@ -582,17 +582,12 @@ public class VirtualInterface implements VirtualMachine.VirtualInterface {
             case 1004:
                 emu.registers[2] = emu.sharedMemory.length >> 2;
                 break;
+            case 1005:
+                emu.setOwnedMemorySize(emu.registers[4]);
+                break;
             case 1020:{
                 VirtualMachine.Callback cb = emu.createCallbackFromCurrentState();
                 emu.registers[2] = this.insert_object(cb);
-                // Timer t = new Timer();
-                // t.schedule(new TimerTask() {
-                //     @Override
-                //     public void run() {
-                //         vm.run();
-                //     }
-                    
-                // }, call_id);
             }
             break;
             case 1021:{

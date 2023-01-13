@@ -55,10 +55,9 @@ Bootstrap code is present in the `rlib` library and will be placed at the starti
 This code initalized the values for `$sp` `$ra` `$gp` `$fp` and jumps to the `main` symbol. 
 By default `main` is expected to have the signature `f() -> !` however `f()` will also work by simple exiting on return.
 
-`$sp` is initialized by first preforming a system call to get the length of `owned` memory then adding `0x80000000`. the stack grows downward towards `0x80000000`.
-It is reccomened that `shared` memory be kept a few bytes shorter than its maximum capacity as the buffer between the end of `shared` memory and the start of `owned` memory act as stack overflow protection. When the stack overflows java will throw a runtime exception of index out of bounds and execution of that thread will immediatly be ended.
-
-It would be nice if the stack uh grew upwards so you could dynamically increase the stack size but we can't all have what we want
+`$sp` is initialized to `0xFFFFFFF0` as owned memory "begins" at `0xFFFFFFFF` but the stack must be alligned to `0x8`. The stack will grow downwards until extending
+pass the length of the provided memory array causing a memory exception. Because the stack starts at the highest address and grows downwards it is possible to grow
+the stack or owned memory in general during runime. It is also possible to start the stack lower in memory and use the end of memory as thread local storage.
 
 ## Memory
 Each Thread contains two kinds of memory `shared` and `owned`. 
@@ -73,12 +72,14 @@ Each Thread contains two kinds of memory `shared` and `owned`.
 
 ### owned
 
-`owned` memory starts at `0x80000000` to `0xFFFFFFFF`. The size can be specified when creating a new thread
+`owned` memory starts at `0x80000000` to `0xFFFFFFFF`. The size can be specified when creating a new thread and resized during runtime.
 
 `owned` memory is thread local it can contain any data but is setup to only be used for stack data by default. 
 NOTE: program data cannot be sotred here no execution is allowed from owned memory.
 
 By default the stack owns the entierty of `owned` memory. 
+
+internally `owned` memory is mapped so that the vm address `0xFFFFFFFF` to memory array index `0x00000000` and `0xFFFFFFFA` to memory array index `0x00000001`. while the addresses are reversed the first 2 bits are preserved to keep the correct endian ordering. 
 
 ## Multithreading
 

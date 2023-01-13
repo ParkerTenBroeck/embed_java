@@ -90,8 +90,7 @@ public class VirtualMachine {
             vmt.pc = this.trampoline_addr;
             vmt.registers[31] = this.standalone_return_addr;
             vmt.registers[4] = this.ptr_rust_struct;
-            int stack_start = this.vmt.ownedLen() + 0x80000000;
-            vmt.registers[29] = stack_start;
+            vmt.registers[29] = 0xFFFFFFF0;
         }
     }
 
@@ -148,6 +147,14 @@ public class VirtualMachine {
             VirtualMachineThreadState vm = createNextVMThreadStateWithOwnedMemorySize(ownedSize);
             vm.sharedMemory = this.sharedMemory;
             return vm;
+        }
+
+        public void setOwnedMemorySize(int size){
+            int[] nMem = new int[(size + 3) << 2];
+            for(int i = 0; i < Integer.min(nMem.length, ownedMemory.length); i ++){
+                nMem[i] = ownedMemory[i];
+            }
+            ownedMemory = nMem;
         }
 
         public VirtualMachine.Callback createCallbackFromCurrentState() {
@@ -828,15 +835,15 @@ public class VirtualMachine {
                     this.sharedMemory[address] |= ((int)data) & 0xFFFF;
                 }
             }else{
-                address = 0xFFFFFFFC - (address & ~0b11)  + (address & 0b11);
+                int aAddress = 0xFFFFFFFF - address;
                 if ((address & 0b10) == 0) {
-                    address >>>= 2;
-                    this.ownedMemory[address] &= 0x0000FFFF;
-                    this.ownedMemory[address] |= data << 16;
+                    aAddress >>>= 2;
+                    this.ownedMemory[aAddress] &= 0x0000FFFF;
+                    this.ownedMemory[aAddress] |= data << 16;
                 }else{
-                    address >>>= 2;
-                    this.ownedMemory[address] &= 0xFFFF0000;
-                    this.ownedMemory[address] |= ((int)data) & 0xFFFF;
+                    aAddress >>>= 2;
+                    this.ownedMemory[aAddress] &= 0xFFFF0000;
+                    this.ownedMemory[aAddress] |= ((int)data) & 0xFFFF;
                 }
             }
         }
@@ -861,23 +868,23 @@ public class VirtualMachine {
                     this.sharedMemory[address] |= ((int)data) & 0xFF;
                 }
             }else{
-                address = 0xFFFFFFFC - (address & ~0b11)  + (address & 0b11);
+                int aAddress = 0xFFFFFFFF - address;
                 if ((address & 0b11) == 0) {
-                    address >>>= 2;
-                    this.ownedMemory[address] &= 0x00FFFFFF;
-                    this.ownedMemory[address] |= (((int)data) & 0xFF) << 24;
+                    aAddress >>>= 2;
+                    this.ownedMemory[aAddress] &= 0x00FFFFFF;
+                    this.ownedMemory[aAddress] |= (((int)data) & 0xFF) << 24;
                 }else if ((address & 0b11) == 1) {
-                    address >>>= 2;
-                    this.ownedMemory[address] &= 0xFF00FFFF;
-                    this.ownedMemory[address] |= (((int)data) & 0xFF) << 16;
+                    aAddress >>>= 2;
+                    this.ownedMemory[aAddress] &= 0xFF00FFFF;
+                    this.ownedMemory[aAddress] |= (((int)data) & 0xFF) << 16;
                 }else if ((address & 0b11) == 2){
-                    address >>>= 2;
-                    this.ownedMemory[address] &= 0xFFFF00FF;
-                    this.ownedMemory[address] |= (((int)data) & 0xFF) << 8;
+                    aAddress >>>= 2;
+                    this.ownedMemory[aAddress] &= 0xFFFF00FF;
+                    this.ownedMemory[aAddress] |= (((int)data) & 0xFF) << 8;
                 }else{
-                    address >>>= 2;
-                    this.ownedMemory[address] &= 0xFFFFFF00;
-                    this.ownedMemory[address] |= ((int)data) & 0xFF;
+                    aAddress >>>= 2;
+                    this.ownedMemory[aAddress] &= 0xFFFFFF00;
+                    this.ownedMemory[aAddress] |= ((int)data) & 0xFF;
                 }
             }
         }
@@ -899,11 +906,11 @@ public class VirtualMachine {
                     return (short)(this.sharedMemory[address >>> 2]);
                 }
             }else{
-                address = 0xFFFFFFFC - (address & ~0b11)  + (address & 0b11);
+                int aAddress = 0xFFFFFFFF - address;
                 if ((address & 0b10) == 0){
-                    return (short)((this.ownedMemory[address >>> 2]) >> 16);
+                    return (short)((this.ownedMemory[aAddress >>> 2]) >> 16);
                 }else{
-                    return (short)(this.ownedMemory[address >>> 2]);
+                    return (short)(this.ownedMemory[aAddress >>> 2]);
                 }
             }
         }
@@ -920,15 +927,15 @@ public class VirtualMachine {
                     return (byte)(this.sharedMemory[address >>> 2]);
                 }
             }else{
-                address = 0xFFFFFFFC - (address & ~0b11)  + (address & 0b11);
+                int aAddress = 0xFFFFFFFF - address;
                 if ((address & 0b11) == 0){
-                    return (byte)((this.ownedMemory[address >>> 2]) >> 24);
+                    return (byte)((this.ownedMemory[aAddress >>> 2]) >> 24);
                 }else if ((address & 0b11) == 1){
-                    return (byte)((this.ownedMemory[address >>> 2]) >> 16);
+                    return (byte)((this.ownedMemory[aAddress >>> 2]) >> 16);
                 }else if ((address & 0b11) == 2){
-                    return (byte)((this.ownedMemory[address >>> 2]) >> 8);
+                    return (byte)((this.ownedMemory[aAddress >>> 2]) >> 8);
                 }else{
-                    return (byte)(this.ownedMemory[address >>> 2]);
+                    return (byte)(this.ownedMemory[aAddress >>> 2]);
                 }
             }
         }
