@@ -2,8 +2,8 @@
 #![no_main]
 #![feature(const_for)]
 #![feature(strict_provenance)]
-#![feature(default_alloc_error_handler)]
 
+use core::hint::black_box;
 #[allow(unused)]
 use core::time::Duration;
 pub mod asteroids;
@@ -36,6 +36,16 @@ static ALLOCATOR: ll_alloc::Alloc = ll_alloc::Alloc::new();
 
 #[no_mangle]
 pub fn main() {
+    //let mut bruh:u32 = black_box(0x11223344);
+    // let bruh_p = black_box(core::ptr::from_exposed_addr_mut(0xFFFFFFF8));
+    // unsafe{core::ptr::write_unaligned(bruh_p, 0x11223344u32)}
+    // let bruh_p = black_box(bruh_p);
+    // println!("{:x}", unsafe{core::ptr::read_unaligned(bruh_p)});
+    // unsafe{core::ptr::write_unaligned(bruh_p, 0x99887766)}
+    // println!("{:x}", unsafe{core::ptr::read_unaligned(bruh_p)});
+    // unsafe{core::ptr::write(bruh_p, 0x55443322)}
+    // println!("{:x}", unsafe{core::ptr::read_unaligned(bruh_p)});
+    //panic!();
     // for _ in 0..20 {
     //     let start = rlib::arch::current_time_nanos();
     //     let mut vec = alloc::vec::Vec::new();
@@ -80,6 +90,7 @@ pub fn main() {
     // });
     // rlib::nji::callback::timer::start_peroid(Duration::from_millis(10), cb.into_jvm_obj());
 
+    println!("briuh");
     loop {
         game.run_frame();
     }

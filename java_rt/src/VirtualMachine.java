@@ -25,7 +25,7 @@ public class VirtualMachine {
     // the next threadID to use 
     private AtomicInteger nextThreadId = new AtomicInteger(1);
 
-    private volatile List<WeakReference<Thread>> threads = Collections.synchronizedList(new ArrayList<WeakReference<Thread>>());
+    private volatile List<WeakReference<VirtualMachineThreadState>> threads = Collections.synchronizedList(new ArrayList<WeakReference<VirtualMachineThreadState>>());
 
     // returns the next thread ID to use
     private int nextThreadId(){
@@ -38,6 +38,29 @@ public class VirtualMachine {
 
     public VirtualMachine.VirtualMachineThreadState createNextVMThreadStateWithOwnedMemorySize(int size) {
         return new VirtualMachineThreadState(this.nextThreadId(), size);
+    }
+
+    private void removeThreadIdFromPool(int threadId){
+        threads.removeIf((t) -> {
+            VirtualMachineThreadState vmts = t.get();
+            if (vmts != null)
+                return vmts.threadId == threadId;
+            return true;
+        });
+    }
+
+    public VirtualMachine.VirtualMachineThreadState getThreadFromId(int threadId){
+        for(WeakReference<VirtualMachineThreadState> vmts_wr : threads){
+            VirtualMachineThreadState vmts = vmts_wr.get();
+            if (vmts != null)
+                if (vmts.threadId == threadId)
+                    return vmts;
+        }
+        return null;
+    }
+
+    private void addThreadToPool(VirtualMachineThreadState vmts) {
+        threads.add(new WeakReference<VirtualMachine.VirtualMachineThreadState>(vmts));
     }
 
     public static class Callback{
@@ -72,7 +95,7 @@ public class VirtualMachine {
         }
     }
 
-    public class VirtualMachineThreadState{
+    public class VirtualMachineThreadState extends Thread{
         // Program counter
         protected int pc = 0;
         // Special low register
@@ -141,9 +164,12 @@ public class VirtualMachine {
         public boolean getLLBit() {
             return LLVal;
         }
-    
+        
+        @Override
         public void run() {
             try{
+                addThreadToPool(this);
+
                 this.running = true;
                 int t;
                 int s;
@@ -155,7 +181,16 @@ public class VirtualMachine {
                 int id;
                 loop: 
                 while (true){
-                    int opCode = sharedMemory[this.pc >> 2];
+                    
+                    int opCode;
+                    try{
+                        opCode = sharedMemory[this.pc >> 2];
+                    }catch(Exception e){
+                        System.out.println(e);
+                        System.out.println(Integer.toHexString(this.pc));
+                        System.out.println(Integer.toHexString(this.registers[31]));
+                        throw e;
+                    }
                     this.pc += 4;
     
                     switch (opCode >>> 26) {
@@ -766,6 +801,9 @@ public class VirtualMachine {
                 this.running = false;
                 throw new RuntimeException(e);
             }
+
+            removeThreadIdFromPool(this.threadId);
+
             System.out.println("Thread: " + this.threadId + " Exited");
         }
     
@@ -773,7 +811,7 @@ public class VirtualMachine {
             if (address >= 0){
                 this.sharedMemory[address >>> 2] = data;
             }else{
-                address = address - 0x80000000;
+                address = 0xFFFFFFFF - address;
                 this.ownedMemory[address >>> 2] = data;
             }
         }
@@ -790,7 +828,7 @@ public class VirtualMachine {
                     this.sharedMemory[address] |= ((int)data) & 0xFFFF;
                 }
             }else{
-                address = address - 0x80000000;
+                address = 0xFFFFFFFC - (address & ~0b11)  + (address & 0b11);
                 if ((address & 0b10) == 0) {
                     address >>>= 2;
                     this.ownedMemory[address] &= 0x0000FFFF;
@@ -823,7 +861,7 @@ public class VirtualMachine {
                     this.sharedMemory[address] |= ((int)data) & 0xFF;
                 }
             }else{
-                address = address - 0x80000000;
+                address = 0xFFFFFFFC - (address & ~0b11)  + (address & 0b11);
                 if ((address & 0b11) == 0) {
                     address >>>= 2;
                     this.ownedMemory[address] &= 0x00FFFFFF;
@@ -848,7 +886,7 @@ public class VirtualMachine {
             if (address >= 0){
                 return this.sharedMemory[address >>> 2];
             }else{
-                address = address - 0x80000000;
+                address = 0xFFFFFFFF - address;
                 return this.ownedMemory[address >>> 2];
             }
         }
@@ -861,7 +899,7 @@ public class VirtualMachine {
                     return (short)(this.sharedMemory[address >>> 2]);
                 }
             }else{
-                address = address - 0x80000000;
+                address = 0xFFFFFFFC - (address & ~0b11)  + (address & 0b11);
                 if ((address & 0b10) == 0){
                     return (short)((this.ownedMemory[address >>> 2]) >> 16);
                 }else{
@@ -882,7 +920,7 @@ public class VirtualMachine {
                     return (byte)(this.sharedMemory[address >>> 2]);
                 }
             }else{
-                address = address - 0x80000000;
+                address = 0xFFFFFFFC - (address & ~0b11)  + (address & 0b11);
                 if ((address & 0b11) == 0){
                     return (byte)((this.ownedMemory[address >>> 2]) >> 24);
                 }else if ((address & 0b11) == 1){

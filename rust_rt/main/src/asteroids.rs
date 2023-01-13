@@ -236,6 +236,8 @@ impl Game {
             }
             particle.life > 0.0
         });
+
+
         self.screen
             .push_command(ScreenCommand::SetColor([255, 255, 255, 255]));
         for asteroid in &mut self.asteroids {
@@ -334,6 +336,7 @@ impl Game {
             self.level += 1;
         }
 
+
         self.screen
             .push_command(ScreenCommand::SetColor([255, 255, 255, 255]));
 
@@ -406,6 +409,7 @@ impl Game {
         if !rlib::arch::is_key_pressed('e') {
             rlib::arch::sleep_d_ms(16);
         }
+
     }
 
     fn spawn_asteroids(&mut self) {

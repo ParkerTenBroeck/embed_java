@@ -6,12 +6,14 @@ core::arch::global_asm!(
     ".globl _start",
     ".type _start, %function",
     "_start:",
-    // stack (owned memory) starts at 0x80000000 and extends an unspecified ammount
-    "li $sp, 0x80000000",
+    // stack starts at 0xFFFFFFFF so we allign it to 8
+    // and will grow downward
+    // the first 8 bytes could prolly be used for something but idk
+    "li $sp, 0xFFFFFFF0",
     // querry the system to see how long (in bytes) the owned memory of this thread is
-    "syscall {get_stack_size}",
+    //"syscall {get_stack_size}",
     // the start of the stack is the end of our owned memory
-    "add $sp, $sp, $2",
+    //"add $sp, $sp, $2",
     // initialize gp and fp registers
     "la $gp, _gp",
     "move $fp, $sp",
@@ -23,7 +25,6 @@ core::arch::global_asm!(
     "1:",
     "syscall 0",
     "b 1b",
-    get_stack_size = const { crate::arch::GET_OWNED_MEMORY_LENGTH }
 );
 
 #[inline(always)]

@@ -565,15 +565,9 @@ public class VirtualInterface implements VirtualMachine.VirtualInterface {
                 vm.registers[31] = 0xFFFFFFFF;
                 vm.registers[29] = stack_start;
                 // default to shared memory (all)
-                Thread t = new Thread(){
-                    @Override
-                    public void run() {
-                        vm.run(); 
-                    }
-                };
                 // return thread id of new thread to old thread
                 emu.registers[2] = vm.getThreadId();
-                t.start();
+                vm.start();
             }
                 break;
             case 1001:
