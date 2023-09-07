@@ -6,8 +6,8 @@ edition = "2021"
 [dependencies]
 rlib = { path = "../rlib", features = ["alloc"] }
 ll_alloc ={ path = "../ll_alloc" }
-macros = { version = "*", path = "../macros"}
-lazy_static = { version = "*", features = ["spin_no_std"]}
+# macros = { version = "*", path = "../macros"}
+# lazy_static = { version = "*", features = ["spin_no_std"]}
 libm = "*"
 
 [dependencies.num-traits]

@@ -39,8 +39,8 @@ where
         drop(new_thread_packet);
     };
 
-    let main: Box<dyn FnOnce() + 'static /*+ Send*/> = box main;
-    let p = Box::into_raw(box main);
+    let main: Box<dyn FnOnce() + 'static /*+ Send*/> = Box::new(main);
+    let p = Box::into_raw(Box::new(main));
 
     let p = p as *mut core::ffi::c_void;
     let res = unsafe { create_thread(run_thread, p, stack_size) };

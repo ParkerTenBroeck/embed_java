@@ -227,15 +227,19 @@ pub fn build_vm_binary(name: &str) {
     run_cmd.current_dir(std::env::current_dir().unwrap());
 
     run_cmd
-        .arg("+nightly")
-        .arg("build")
+    .arg("+nightly")
+        .arg("rustc")
         .arg("--release")
         .arg("--package")
         .arg(name)
         .arg("--target")
         .arg("mips.json")
         .arg("-Zbuild-std=core,compiler_builtins,alloc")
-        .arg("-Zbuild-std-features=compiler-builtins-mem");
+        .arg("-Zbuild-std-features=compiler-builtins-mem")
+        // .arg("--")
+        // .arg("--emit")
+        // .arg("asm")
+        ;
 
     assert!(run_cmd.status().unwrap().success());
 }

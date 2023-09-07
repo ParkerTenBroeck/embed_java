@@ -16,19 +16,6 @@ use rlib::nji::{
 };
 pub use rlib::*;
 
-#[no_mangle]
-/// # Safety
-/// No :)
-pub unsafe extern "C" fn fmod(f1: f64, f2: f64) -> f64 {
-    libm::fmod(f1, f2)
-}
-
-#[no_mangle]
-/// # Safety
-/// No :)
-pub unsafe extern "C" fn fmodf(f1: f32, f2: f32) -> f32 {
-    libm::fmodf(f1, f2)
-}
 
 #[global_allocator]
 static ALLOCATOR: ll_alloc::Alloc = ll_alloc::Alloc::new();
